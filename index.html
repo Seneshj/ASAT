@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ASAT - Attention System Assessment Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0a0f1e 0%, #0c1222 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #eef2ff;
+        }
+
+        .asat-container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(18, 25, 45, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.3);
+            overflow: hidden;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5d8ff, #ffb347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: #8e9ecc;
+            margin-top: 0.5rem;
+        }
+
+        .main-panel {
+            background: #0b1020;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .task-selector {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .task-btn {
+            background: #1e2a3e;
+            border: none;
+            color: #ccdeee;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-btn.active {
+            background: #4f7df3;
+            color: white;
+            box-shadow: 0 0 15px #4f7df3;
+        }
+
+        .stimulus-area {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .stimulus-text {
+            font-size: 5rem;
+            font-weight: bold;
+            background: #00000030;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            display: inline-block;
+            font-family: 'Courier New', monospace;
+            min-width: 250px;
+        }
+
+        .feedback {
+            font-size: 1rem;
+            margin-top: 12px;
+            background: #1a2340;
+            padding: 8px 16px;
+            border-radius: 40px;
+            display: inline-block;
+        }
+
+        .instructions {
+            background: #111827;
+            padding: 15px;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            text-align: center;
+            margin: 15px 0;
+            border-left: 3px solid #4f7df3;
+        }
+
+        .progress-info {
+            background: #00000055;
+            padding: 8px 15px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .timer-display {
+            background: #00000066;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: inline-block;
+            font-family: monospace;
+        }
+
+        .button-panel {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #2e3b4e;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .control-btn:active {
+            transform: scale(0.97);
+        }
+
+        .reset-btn { background: #7a3e2e; }
+        .stop-btn { background: #8b3a3a; }
+        .predict-btn { background: #2e7a5e; }
+        .training-btn { background: #ff6b35; }
+
+        .results-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 1rem;
+            background: #1a2340;
+            text-align: center;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .metric-card {
+            background: #0f1422;
+            padding: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #4f7df3;
+        }
+
+        .metric-label {
+            font-size: 0.65rem;
+            color: #8e9ecc;
+        }
+
+        .metric-value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #ffb347;
+        }
+
+        .prediction-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 1rem;
+            font-size: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .prediction-success {
+            background: linear-gradient(135deg, #1e4620, #0a2a0a);
+            border-left: 4px solid #55ff55;
+        }
+
+        .prediction-error {
+            background: linear-gradient(135deg, #46201e, #2a0a0a);
+            border-left: 4px solid #ff5555;
+        }
+
+        .prediction-loading {
+            background: linear-gradient(135deg, #204662, #0a1a2a);
+            border-left: 4px solid #ffaa55;
+        }
+
+        .api-config {
+            background: #0a0f1a;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            margin-top: 10px;
+            color: #8e9ecc;
+        }
+
+        .training-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #2a345a;
+        }
+
+        .go-training-btn {
+            background: linear-gradient(135deg, #ff6b35, #ff4500);
+            border: none;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .go-training-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px #ff6b35;
+        }
+
+        .go-training-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 600px) {
+            .asat-container { padding: 1rem; }
+            .stimulus-text { font-size: 3rem; }
+            .task-btn { padding: 8px 16px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="asat-container">
+    <div class="header">
+        <div class="logo">🧠 ASAT</div>
+        <div class="subtitle">Attention System Assessment Tool</div>
+    </div>
+
+    <div class="main-panel">
+        <div class="task-selector">
+            <button class="task-btn" data-task="cpt">🎯 CPT (50 trials)</button>
+            <button class="task-btn" data-task="stroop">🎨 Stroop (90 sec)</button>
+            <button class="task-btn" data-task="flanker">⬅️➡️ Flanker (90 sec)</button>
+        </div>
+
+        <div style="text-align: center;">
+            <div class="timer-display" id="timerDisplay">Ready</div>
+        </div>
+        <div class="progress-info" id="progressInfo">⚙️ Complete all 3 tasks to get classification</div>
+        <div class="stimulus-area">
+            <div class="stimulus-text" id="stimulusDisplay">—</div>
+            <div class="feedback" id="feedbackMsg">Ready</div>
+        </div>
+        <div class="instructions" id="instructionText">
+            🔹 <strong>CPT:</strong> Press SPACE for any letter EXCEPT 'X' (50 trials, 80% Go)<br>
+            🔹 <strong>Stroop:</strong> Tap the COLOR button matching the INK color (90 seconds)<br>
+            🔹 <strong>Flanker:</strong> Tap LEFT/RIGHT arrow matching CENTRAL arrow (90 seconds)
+        </div>
+        
+        <div id="buttonPanel"></div>
+        
+        <div class="button-panel">
+            <button class="control-btn" id="startBtn">▶ START TASK</button>
+            <button class="control-btn stop-btn" id="stopBtn">⏹️ STOP</button>
+            <button class="control-btn reset-btn" id="resetDataBtn">🗑 RESET ALL</button>
+            <button class="control-btn predict-btn" id="sendToModelBtn">🤖 GET ATTENTION PROFILE</button>
+        </div>
+    </div>
+
+    <div class="results-area">
+        <div style="font-weight: bold; margin-bottom: 10px;">📊 Your Attention Metrics</div>
+        <div id="metricsDisplay" class="metrics-grid">
+            <div class="metric-card"><div class="metric-label">CPT RT Mean</div><div class="metric-value" id="cpt_mean">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT RT Std</div><div class="metric-value" id="cpt_std">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT CV</div><div class="metric-value" id="cpt_cv">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT Omissions</div><div class="metric-value" id="cpt_om">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT Commissions</div><div class="metric-value" id="cpt_com">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT d-prime</div><div class="metric-value" id="cpt_dprime">—</div></div>
+            <div class="metric-card"><div class="metric-label">CPT Sustained Slope</div><div class="metric-value" id="cpt_slope">—</div></div>
+            <div class="metric-card"><div class="metric-label">Stroop Interference</div><div class="metric-value" id="stroop_int">—</div></div>
+            <div class="metric-card"><div class="metric-label">Flanker Effect</div><div class="metric-value" id="flanker_eff">—</div></div>
+        </div>
+        
+        <div id="predictionResult" class="prediction-result prediction-loading">
+            ⚡ Complete all tasks and click "GET ATTENTION PROFILE"
+        </div>
+        
+        <div class="training-section" id="trainingSection" style="display: none;">
+            <button class="go-training-btn" id="goTrainingBtn">🎯 Let's Go to Your Training Session →</button>
+        </div>
+        
+        <div class="api-config">
+            🔌 API Endpoint: <span id="apiEndpoint">http://localhost:5000/predict</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== CONFIGURATION ====================
+    const MODEL_API_URL = "http://localhost:5000/predict";
+    
+    // ==================== TASK PARAMETERS ====================
+    const CPT_TOTAL_TRIALS = 50;
+    const CPT_STIMULUS_DURATION = 500;
+    const CPT_INTER_STIMULUS_INTERVAL = 1000;
+    const CPT_TARGET_PROBABILITY = 0.8;
+    const TASK_DURATION = 90;
+    
+    // ==================== GLOBAL DATA ====================
+    let allTrials = [];
+    let currentTask = "cpt";
+    let taskActive = false;
+    let currentTaskName = "";
+    let storedClusterId = null;
+    let storedAttentionGroup = null;
+    
+    // CPT variables
+    let cptTrials = [];
+    let cptCurrentTrialIndex = 0;
+    let cptTimer = null;
+    let cptHasResponded = false;
+    let cptCurrentStimulusStart = 0;
+    
+    // Timed task variables
+    let timedTaskActive = false;
+    let timedTaskStartTime = 0;
+    let timedTaskTimer = null;
+    let timedTaskCurrentTrial = null;
+    let timedTaskTimeout = null;
+    let timedTaskNextTimeout = null;
+    let timedTaskTrialStart = 0;
+    let timedTaskExpected = null;
+    
+    const stimulusDisplay = document.getElementById("stimulusDisplay");
+    const feedbackMsg = document.getElementById("feedbackMsg");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const resetDataBtn = document.getElementById("resetDataBtn");
+    const sendToModelBtn = document.getElementById("sendToModelBtn");
+    const progressInfo = document.getElementById("progressInfo");
+    const instructionText = document.getElementById("instructionText");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const buttonPanel = document.getElementById("buttonPanel");
+    const predictionResult = document.getElementById("predictionResult");
+    const trainingSection = document.getElementById("trainingSection");
+    const goTrainingBtn = document.getElementById("goTrainingBtn");
+    const apiEndpointSpan = document.getElementById("apiEndpoint");
+    
+    apiEndpointSpan.textContent = MODEL_API_URL;
+    
+    // Store cluster data when prediction is made
+    function storeClusterData(clusterId, attentionGroup) {
+        storedClusterId = clusterId;
+        storedAttentionGroup = attentionGroup;
+        localStorage.setItem('asat_cluster_id', clusterId);
+        localStorage.setItem('asat_attention_group', attentionGroup);
+        console.log(`Stored cluster data: ID=${clusterId}, Group=${attentionGroup}`);
+    }
+    
+    // Go to training session
+    goTrainingBtn.addEventListener("click", () => {
+        if (storedClusterId !== null) {
+            window.location.href = `training.html?cluster=${storedClusterId}`;
+        } else {
+            alert("Please complete the assessment first to get your attention profile.");
+        }
+    });
+    
+    // ==================== UI BUTTONS ====================
+    function updateButtonPanel() {
+        if (currentTask === "cpt") {
+            buttonPanel.innerHTML = `<div class="button-panel cpt-panel"><button class="control-btn" id="cptSpaceBtn" style="background:#4f7df3; font-size:1.5rem; padding:15px 50px;">␣ SPACE</button></div>`;
+            document.getElementById("cptSpaceBtn")?.addEventListener("click", () => handleCPTResponse());
+        } 
+        else if (currentTask === "stroop") {
+            buttonPanel.innerHTML = `<div class="button-panel" id="stroopButtons" style="display:flex; gap:15px; justify-content:center;"><button class="control-btn" id="stroopLeftBtn" style="background:#ff5555;">RED</button><button class="control-btn" id="stroopRightBtn" style="background:#55ff55;">GREEN</button></div>`;
+            updateStroopButtons("RED", "GREEN");
+        } 
+        else if (currentTask === "flanker") {
+            buttonPanel.innerHTML = `<div class="button-panel" style="display:flex; gap:15px; justify-content:center;"><button class="control-btn" id="flankerLeftBtn" style="background:#2a3a55; font-size:1.3rem;">⬅️ LEFT</button><button class="control-btn" id="flankerRightBtn" style="background:#2a3a55; font-size:1.3rem;">RIGHT ➡️</button></div>`;
+            document.getElementById("flankerLeftBtn")?.addEventListener("click", () => handleTimedResponse("left"));
+            document.getElementById("flankerRightBtn")?.addEventListener("click", () => handleTimedResponse("right"));
+        }
+    }
+    
+    function updateStroopButtons(leftColor, rightColor) {
+        const leftBtn = document.getElementById("stroopLeftBtn");
+        const rightBtn = document.getElementById("stroopRightBtn");
+        if (leftBtn && rightBtn) {
+            leftBtn.textContent = leftColor;
+            rightBtn.textContent = rightColor;
+            leftBtn.style.backgroundColor = leftColor.toLowerCase();
+            rightBtn.style.backgroundColor = rightColor.toLowerCase();
+            const newLeft = leftBtn.cloneNode(true);
+            const newRight = rightBtn.cloneNode(true);
+            leftBtn.parentNode.replaceChild(newLeft, leftBtn);
+            rightBtn.parentNode.replaceChild(newRight, rightBtn);
+            newLeft.addEventListener("click", () => handleTimedResponse("left"));
+            newRight.addEventListener("click", () => handleTimedResponse("right"));
+        }
+    }
+    
+    function recordTrial(taskName, condition, stimulus, correctResp, userResp, rt, accuracy) {
+        allTrials.push({
+            timestamp: new Date().toISOString(),
+            task: taskName,
+            condition: condition,
+            stimulus: stimulus,
+            correct_response: correctResp,
+            user_response: userResp,
+            reaction_time_ms: Math.round(rt),
+            accuracy: accuracy ? 1 : 0
+        });
+        
+        feedbackMsg.innerText = accuracy ? "✓ Correct!" : "✗ Incorrect";
+        feedbackMsg.style.background = accuracy ? "#1e4620" : "#662222";
+        setTimeout(() => { if(feedbackMsg) feedbackMsg.style.background = "#1a2340"; }, 400);
+        
+        updateMetricsDisplay();
+    }
+    
+    // ==================== METRICS CALCULATION ====================
+    function computeAllMetrics() {
+        const cptTrialsData = allTrials.filter(t => t.task === "CPT");
+        const stroopTrialsData = allTrials.filter(t => t.task === "Stroop");
+        const flankerTrialsData = allTrials.filter(t => t.task === "Flanker");
+        
+        let cptMetrics = { mean: null, std: null, cv: null, omissions: 0, commissions: 0, dprime: null, sustained_slope: 0 };
+        
+        if (cptTrialsData.length > 0) {
+            const goCorrectRTs = cptTrialsData.filter(t => t.condition === "go" && t.accuracy === 1 && t.reaction_time_ms > 0).map(t => t.reaction_time_ms);
+            let meanRT = goCorrectRTs.length ? goCorrectRTs.reduce((a,b)=>a+b,0)/goCorrectRTs.length : null;
+            let stdRT = null;
+            if (goCorrectRTs.length > 1) {
+                stdRT = Math.sqrt(goCorrectRTs.map(v=>Math.pow(v-meanRT,2)).reduce((a,b)=>a+b,0)/(goCorrectRTs.length-1));
+            }
+            let cv = (meanRT && stdRT) ? stdRT/meanRT : null;
+            let omissions = cptTrialsData.filter(t => t.condition === "go" && t.accuracy === 0).length;
+            let commissions = cptTrialsData.filter(t => t.condition === "nogo" && t.accuracy === 0).length;
+            
+            let totalGo = cptTrialsData.filter(t=>t.condition==="go").length;
+            let totalNoGo = cptTrialsData.filter(t=>t.condition==="nogo").length;
+            let hitRate = totalGo ? (cptTrialsData.filter(t=>t.condition==="go" && t.accuracy===1).length)/totalGo : 0.5;
+            let faRate = totalNoGo ? commissions/totalNoGo : 0.5;
+            hitRate = Math.min(Math.max(hitRate, 0.01), 0.99);
+            faRate = Math.min(Math.max(faRate, 0.01), 0.99);
+            let dprime = (Math.log(hitRate/(1-hitRate)) - Math.log(faRate/(1-faRate))) / 1.414;
+            
+            let sustainedSlope = 0;
+            const allGoTrials = cptTrialsData.filter(t => t.condition === "go");
+            if (allGoTrials.length > 5) {
+                const validTrials = allGoTrials.map((t, idx) => ({ trialNum: idx + 1, rt: t.reaction_time_ms }));
+                const n = validTrials.length;
+                const sumX = validTrials.reduce((a, t) => a + t.trialNum, 0);
+                const sumY = validTrials.reduce((a, t) => a + t.rt, 0);
+                const sumXY = validTrials.reduce((a, t) => a + t.trialNum * t.rt, 0);
+                const sumX2 = validTrials.reduce((a, t) => a + t.trialNum * t.trialNum, 0);
+                sustainedSlope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            }
+            
+            cptMetrics = { mean: meanRT, std: stdRT, cv: cv, omissions, commissions, dprime, sustained_slope: sustainedSlope };
+        }
+        
+        let stroopInterference = null;
+        if (stroopTrialsData.length) {
+            const congruentRTs = stroopTrialsData.filter(t=>t.condition==="congruent" && t.accuracy===1).map(t=>t.reaction_time_ms);
+            const incongruentRTs = stroopTrialsData.filter(t=>t.condition==="incongruent" && t.accuracy===1).map(t=>t.reaction_time_ms);
+            let conMean = congruentRTs.length ? congruentRTs.reduce((a,b)=>a+b,0)/congruentRTs.length : 0;
+            let incMean = incongruentRTs.length ? incongruentRTs.reduce((a,b)=>a+b,0)/incongruentRTs.length : 0;
+            stroopInterference = incMean - conMean;
+        }
+        
+        let flankerEffect = null;
+        if (flankerTrialsData.length) {
+            const conRTs = flankerTrialsData.filter(t=>t.condition==="congruent" && t.accuracy===1).map(t=>t.reaction_time_ms);
+            const incRTs = flankerTrialsData.filter(t=>t.condition==="incongruent" && t.accuracy===1).map(t=>t.reaction_time_ms);
+            let conM = conRTs.length ? conRTs.reduce((a,b)=>a+b,0)/conRTs.length : 0;
+            let incM = incRTs.length ? incRTs.reduce((a,b)=>a+b,0)/incRTs.length : 0;
+            flankerEffect = incM - conM;
+        }
+        
+        return {
+            CPT_RT_mean: cptMetrics.mean,
+            CPT_RT_std: cptMetrics.std,
+            CPT_CV: cptMetrics.cv,
+            CPT_omission: cptMetrics.omissions,
+            CPT_commission: cptMetrics.commissions,
+            CPT_dprime: cptMetrics.dprime,
+            CPT_sustained_slope: cptMetrics.sustained_slope,
+            Stroop_interference: stroopInterference,
+            Flanker_effect: flankerEffect
+        };
+    }
+    
+    function updateMetricsDisplay() {
+        const metrics = computeAllMetrics();
+        document.getElementById("cpt_mean").innerHTML = metrics.CPT_RT_mean ? Math.round(metrics.CPT_RT_mean) + " ms" : "—";
+        document.getElementById("cpt_std").innerHTML = metrics.CPT_RT_std ? Math.round(metrics.CPT_RT_std) + " ms" : "—";
+        document.getElementById("cpt_cv").innerHTML = metrics.CPT_CV ? metrics.CPT_CV.toFixed(3) : "—";
+        document.getElementById("cpt_om").innerHTML = metrics.CPT_omission !== null ? metrics.CPT_omission : "—";
+        document.getElementById("cpt_com").innerHTML = metrics.CPT_commission !== null ? metrics.CPT_commission : "—";
+        document.getElementById("cpt_dprime").innerHTML = metrics.CPT_dprime ? metrics.CPT_dprime.toFixed(2) : "—";
+        document.getElementById("cpt_slope").innerHTML = metrics.CPT_sustained_slope ? metrics.CPT_sustained_slope.toFixed(2) : "—";
+        document.getElementById("stroop_int").innerHTML = metrics.Stroop_interference ? Math.round(metrics.Stroop_interference) + " ms" : "—";
+        document.getElementById("flanker_eff").innerHTML = metrics.Flanker_effect ? Math.round(metrics.Flanker_effect) + " ms" : "—";
+    }
+    
+    // ==================== SEND TO MODEL API ====================
+    async function sendToModel() {
+        const metrics = computeAllMetrics();
+        
+        const requiredMetrics = ['CPT_RT_mean', 'CPT_RT_std', 'CPT_CV', 'CPT_omission', 
+                                  'CPT_commission', 'CPT_dprime', 'CPT_sustained_slope', 
+                                  'Stroop_interference', 'Flanker_effect'];
+        
+        const missingMetrics = requiredMetrics.filter(m => !metrics[m] && metrics[m] !== 0);
+        
+        if (missingMetrics.length > 0) {
+            predictionResult.className = "prediction-result prediction-error";
+            predictionResult.innerHTML = `
+                <strong>⚠️ Missing Data</strong><br>
+                Please complete all tasks first.<br>
+                Missing: ${missingMetrics.join(", ")}
+            `;
+            trainingSection.style.display = "none";
+            return;
+        }
+        
+        const payload = {
+            CPT_RT_mean: metrics.CPT_RT_mean,
+            CPT_RT_std: metrics.CPT_RT_std,
+            CPT_CV: metrics.CPT_CV,
+            CPT_omission: metrics.CPT_omission,
+            CPT_commission: metrics.CPT_commission,
+            CPT_dprime: metrics.CPT_dprime,
+            CPT_sustained_slope: metrics.CPT_sustained_slope,
+            Stroop_interference: metrics.Stroop_interference,
+            Flanker_effect: metrics.Flanker_effect
+        };
+        
+        console.log("Sending to model:", payload);
+        
+        predictionResult.className = "prediction-result prediction-loading";
+        predictionResult.innerHTML = "<strong>📤 Analyzing your attention profile...</strong><br>GMM model is processing your metrics";
+        
+        try {
+            const response = await fetch(MODEL_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            console.log("Model response:", data);
+            
+            if (data.success) {
+                const confidencePercent = (data.confidence * 100).toFixed(1);
+                const clusterId = data.cluster_id;
+                
+                // Store cluster data for training session
+                storeClusterData(clusterId, data.attention_group);
+                
+                let clusterColor = '';
+                switch(clusterId) {
+                    case 0: clusterColor = '#4CAF50'; break;
+                    case 1: clusterColor = '#2196F3'; break;
+                    case 2: clusterColor = '#FF9800'; break;
+                    default: clusterColor = '#9C27B0';
+                }
+                
+                predictionResult.className = "prediction-result prediction-success";
+                predictionResult.innerHTML = `
+                    <div style="font-size: 1.2rem; margin-bottom: 10px;">🎯 ${data.attention_group}</div>
+                    <div style="font-size: 0.9rem; margin-bottom: 10px;">${data.description}</div>
+                    <div style="font-size: 0.85rem; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                        <strong>💡 Recommendation:</strong> ${data.recommendation}
+                    </div>
+                    <div style="font-size: 0.8rem; margin-top: 10px;">
+                        Confidence: ${confidencePercent}% | Cluster ID: ${clusterId}
+                    </div>
+                `;
+                
+                // Show training section
+                trainingSection.style.display = "block";
+                
+            } else {
+                predictionResult.className = "prediction-result prediction-error";
+                predictionResult.innerHTML = `
+                    <strong>❌ Prediction Error</strong><br>
+                    ${data.error || 'Unknown error occurred'}
+                `;
+                trainingSection.style.display = "none";
+            }
+            
+        } catch (error) {
+            console.error("Error sending to model:", error);
+            predictionResult.className = "prediction-result prediction-error";
+            predictionResult.innerHTML = `
+                <strong>❌ Connection Error</strong><br>
+                Could not connect to ${MODEL_API_URL}<br>
+                Make sure your Flask server is running on port 5000<br>
+                <small style="color: #ff8888;">Error: ${error.message}</small>
+            `;
+            trainingSection.style.display = "none";
+        }
+    }
+    
+    // ==================== CPT TASK ====================
+    function generateCPTTrials() {
+        let trials = [];
+        for (let i = 0; i < CPT_TOTAL_TRIALS; i++) {
+            let isGo = Math.random() < CPT_TARGET_PROBABILITY;
+            let stimulus = "";
+            if (isGo) {
+                const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(l => l !== "X");
+                stimulus = letters[Math.floor(Math.random() * letters.length)];
+            } else {
+                stimulus = "X";
+            }
+            trials.push({ type: isGo ? "go" : "nogo", stimulus: stimulus, shouldPress: isGo });
+        }
+        return trials;
+    }
+    
+    function runCPTTrial() {
+        if (!taskActive) return;
+        if (cptCurrentTrialIndex >= cptTrials.length) {
+            completeCPT();
+            return;
+        }
+        
+        const trial = cptTrials[cptCurrentTrialIndex];
+        cptCurrentStimulusStart = performance.now();
+        cptHasResponded = false;
+        
+        stimulusDisplay.innerText = trial.stimulus;
+        stimulusDisplay.style.color = "white";
+        
+        progressInfo.innerText = `CPT | Trial ${cptCurrentTrialIndex + 1}/${CPT_TOTAL_TRIALS} | ${trial.type.toUpperCase()}`;
+        timerDisplay.textContent = `${cptCurrentTrialIndex + 1}/${CPT_TOTAL_TRIALS}`;
+        
+        cptTimer = setTimeout(() => {
+            if (!taskActive) return;
+            if (!cptHasResponded) {
+                const rt = performance.now() - cptCurrentStimulusStart;
+                const isGo = trial.type === "go";
+                const accuracy = isGo ? 0 : 1;
+                const userResp = isGo ? "omission" : "correct_no_press";
+                recordTrial("CPT", trial.type, trial.stimulus, isGo ? "space" : "no press", userResp, rt, accuracy);
+                
+                cptCurrentTrialIndex++;
+                stimulusDisplay.innerText = "—";
+                
+                setTimeout(() => {
+                    if (taskActive) runCPTTrial();
+                }, CPT_INTER_STIMULUS_INTERVAL);
+            }
+        }, CPT_STIMULUS_DURATION);
+    }
+    
+    function handleCPTResponse() {
+        if (!taskActive) return;
+        if (cptCurrentTrialIndex >= cptTrials.length) return;
+        if (cptHasResponded) return;
+        
+        const trial = cptTrials[cptCurrentTrialIndex];
+        const rt = performance.now() - cptCurrentStimulusStart;
+        cptHasResponded = true;
+        
+        if (cptTimer) clearTimeout(cptTimer);
+        
+        const isGo = trial.type === "go";
+        const accuracy = isGo ? 1 : 0;
+        const userResp = isGo ? "space" : "commission_error";
+        
+        recordTrial("CPT", trial.type, trial.stimulus, isGo ? "space" : "no press", userResp, rt, accuracy);
+        
+        cptCurrentTrialIndex++;
+        stimulusDisplay.innerText = "—";
+        
+        setTimeout(() => {
+            if (taskActive) runCPTTrial();
+        }, CPT_INTER_STIMULUS_INTERVAL);
+    }
+    
+    async function completeCPT() {
+        if (cptTimer) clearTimeout(cptTimer);
+        taskActive = false;
+        
+        feedbackMsg.innerText = "🎉 CPT Completed! 50 trials done!";
+        progressInfo.innerText = "CPT finished! Complete Stroop & Flanker tasks.";
+        stimulusDisplay.innerText = "✅";
+        timerDisplay.textContent = "Done!";
+        
+        updateMetricsDisplay();
+    }
+    
+    function startCPT() {
+        if (cptTimer) clearTimeout(cptTimer);
+        cptTrials = generateCPTTrials();
+        cptCurrentTrialIndex = 0;
+        cptHasResponded = false;
+        taskActive = true;
+        currentTaskName = "CPT";
+        
+        feedbackMsg.innerText = "CPT Running... Press SPACE for any letter except X";
+        timerDisplay.textContent = `0/${CPT_TOTAL_TRIALS}`;
+        progressInfo.innerText = `CPT | Trial 1/${CPT_TOTAL_TRIALS}`;
+        
+        runCPTTrial();
+    }
+    
+    // ==================== STROOP & FLANKER TASKS ====================
+    function generateStroopTrial() {
+        const colorNames = ["RED", "GREEN", "BLUE", "YELLOW"];
+        const colorHex = { "RED": "#ff5555", "GREEN": "#55ff55", "BLUE": "#5599ff", "YELLOW": "#ffff77" };
+        let condition = Math.random() < 0.5 ? "congruent" : "incongruent";
+        let word = colorNames[Math.floor(Math.random() * colorNames.length)];
+        let inkColor = condition === "congruent" ? word : colorNames[Math.floor(Math.random() * colorNames.length)];
+        while (condition === "incongruent" && inkColor === word) {
+            inkColor = colorNames[Math.floor(Math.random() * colorNames.length)];
+        }
+        let correctColor = inkColor;
+        let wrongColors = colorNames.filter(c => c !== correctColor);
+        let wrongColor = wrongColors[Math.floor(Math.random() * wrongColors.length)];
+        let leftIsCorrect = Math.random() < 0.5;
+        return {
+            type: condition, word: word, ink: inkColor, inkColorHex: colorHex[inkColor],
+            correctColor: correctColor, leftColor: leftIsCorrect ? correctColor : wrongColor,
+            rightColor: leftIsCorrect ? wrongColor : correctColor,
+            correctSide: leftIsCorrect ? "left" : "right"
+        };
+    }
+    
+    function generateFlankerTrial() {
+        let condition = Math.random() < 0.5 ? "congruent" : "incongruent";
+        let central = Math.random() < 0.5 ? "<" : ">";
+        let flanker = central;
+        if (condition === "incongruent") flanker = central === "<" ? ">" : "<";
+        let stimulus = flanker + flanker + central + flanker + flanker;
+        return { type: condition, stimulus: stimulus, correctResp: central === "<" ? "left" : "right" };
+    }
+    
+    function updateTimedTimer() {
+        if (!timedTaskActive) return;
+        let elapsed = Math.floor((Date.now() - timedTaskStartTime) / 1000);
+        let remaining = TASK_DURATION - elapsed;
+        if (remaining <= 0) {
+            timerDisplay.textContent = "0:00";
+            endTimedTask();
+        } else {
+            let mins = Math.floor(remaining / 60);
+            let secs = remaining % 60;
+            timerDisplay.textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+            progressInfo.innerHTML = `${currentTaskName} | Time: ${mins}:${secs.toString().padStart(2,'0')} left`;
+        }
+    }
+    
+    async function endTimedTask() {
+        if (timedTaskTimer) clearInterval(timedTaskTimer);
+        if (timedTaskTimeout) clearTimeout(timedTaskTimeout);
+        if (timedTaskNextTimeout) clearTimeout(timedTaskNextTimeout);
+        
+        timedTaskActive = false;
+        taskActive = false;
+        feedbackMsg.innerText = "✅ Task completed!";
+        progressInfo.innerText = "Task finished! Complete remaining tasks.";
+        stimulusDisplay.innerText = "✅";
+        timerDisplay.textContent = "Done!";
+        
+        updateMetricsDisplay();
+    }
+    
+    function showNextTimedTrial() {
+        if (!timedTaskActive) return;
+        
+        let elapsed = (Date.now() - timedTaskStartTime) / 1000;
+        if (elapsed >= TASK_DURATION) {
+            endTimedTask();
+            return;
+        }
+        
+        const trial = currentTaskName === "Stroop" ? generateStroopTrial() : generateFlankerTrial();
+        timedTaskTrialStart = performance.now();
+        
+        if (currentTaskName === "Stroop") {
+            stimulusDisplay.innerText = trial.word;
+            stimulusDisplay.style.color = trial.inkColorHex;
+            timedTaskExpected = trial.correctSide;
+            updateStroopButtons(trial.leftColor, trial.rightColor);
+        } else {
+            stimulusDisplay.innerText = trial.stimulus;
+            stimulusDisplay.style.color = "white";
+            timedTaskExpected = trial.correctResp;
+        }
+        
+        timedTaskCurrentTrial = trial;
+        
+        timedTaskTimeout = setTimeout(() => {
+            if (timedTaskActive && timedTaskCurrentTrial === trial) {
+                let rt = performance.now() - timedTaskTrialStart;
+                let stimulusDesc = currentTaskName === "Stroop" ? `${trial.word} (${trial.ink})` : trial.stimulus;
+                recordTrial(currentTaskName, trial.type, stimulusDesc, timedTaskExpected, "timeout", rt, 0);
+                timedTaskNextTimeout = setTimeout(() => showNextTimedTrial(), 300);
+            }
+        }, 2000);
+    }
+    
+    function handleTimedResponse(responseKey) {
+        if (!timedTaskActive || !timedTaskCurrentTrial) return false;
+        
+        const trial = timedTaskCurrentTrial;
+        const rt = performance.now() - timedTaskTrialStart;
+        
+        if (responseKey === "left" || responseKey === "right") {
+            if (timedTaskTimeout) clearTimeout(timedTaskTimeout);
+            const isCorrect = (responseKey === timedTaskExpected);
+            let stimulusDesc = currentTaskName === "Stroop" ? `${trial.word} (${trial.ink})` : trial.stimulus;
+            recordTrial(currentTaskName, trial.type, stimulusDesc, timedTaskExpected, responseKey, rt, isCorrect);
+            
+            timedTaskCurrentTrial = null;
+            if (timedTaskNextTimeout) clearTimeout(timedTaskNextTimeout);
+            timedTaskNextTimeout = setTimeout(() => showNextTimedTrial(), 300);
+            return true;
+        }
+        return false;
+    }
+    
+    function startTimedTask(taskName) {
+        if (timedTaskTimer) clearInterval(timedTaskTimer);
+        if (timedTaskTimeout) clearTimeout(timedTaskTimeout);
+        if (timedTaskNextTimeout) clearTimeout(timedTaskNextTimeout);
+        
+        currentTaskName = taskName;
+        timedTaskActive = true;
+        taskActive = true;
+        timedTaskStartTime = Date.now();
+        timedTaskCurrentTrial = null;
+        
+        timedTaskTimer = setInterval(() => updateTimedTimer(), 100);
+        timerDisplay.textContent = "1:30";
+        
+        feedbackMsg.innerText = `${taskName} Running... 90 seconds`;
+        progressInfo.innerText = `${taskName} | 90 seconds remaining`;
+        
+        showNextTimedTrial();
+    }
+    
+    // ==================== MAIN HANDLER ====================
+    function startCurrentTask() {
+        if (cptTimer) clearTimeout(cptTimer);
+        if (timedTaskTimer) clearInterval(timedTaskTimer);
+        if (timedTaskTimeout) clearTimeout(timedTaskTimeout);
+        if (timedTaskNextTimeout) clearTimeout(timedTaskNextTimeout);
+        
+        taskActive = false;
+        timedTaskActive = false;
+        
+        if (currentTask === "cpt") {
+            startCPT();
+        } 
+        else if (currentTask === "stroop") {
+            startTimedTask("Stroop");
+        } 
+        else if (currentTask === "flanker") {
+            startTimedTask("Flanker");
+        }
+    }
+    
+    function stopTask() {
+        if (cptTimer) clearTimeout(cptTimer);
+        if (timedTaskTimer) clearInterval(timedTaskTimer);
+        if (timedTaskTimeout) clearTimeout(timedTaskTimeout);
+        if (timedTaskNextTimeout) clearTimeout(timedTaskNextTimeout);
+        
+        taskActive = false;
+        timedTaskActive = false;
+        
+        feedbackMsg.innerText = "Task stopped.";
+        progressInfo.innerText = "Task stopped. Press START to begin again.";
+        stimulusDisplay.innerText = "—";
+        timerDisplay.textContent = "Stopped";
+    }
+    
+    function resetAllData() {
+        stopTask();
+        allTrials = [];
+        cptCurrentTrialIndex = 0;
+        cptTrials = [];
+        storedClusterId = null;
+        storedAttentionGroup = null;
+        localStorage.removeItem('asat_cluster_id');
+        localStorage.removeItem('asat_attention_group');
+        updateMetricsDisplay();
+        
+        feedbackMsg.innerText = "All data erased. Start new tasks!";
+        progressInfo.innerText = "Data cleared. Complete all 3 tasks to get classification.";
+        stimulusDisplay.innerText = "—";
+        timerDisplay.textContent = "Ready";
+        
+        predictionResult.className = "prediction-result prediction-loading";
+        predictionResult.innerHTML = "⚡ Complete all tasks and click 'GET ATTENTION PROFILE'";
+        trainingSection.style.display = "none";
+    }
+    
+    function switchTask(task) {
+        if (taskActive) { stopTask(); }
+        currentTask = task;
+        updateButtonPanel();
+        let instructText = "";
+        if (currentTask === "cpt") instructText = "🔹 <strong>CPT:</strong> Press SPACE for any letter EXCEPT 'X'. 50 trials, 80% Go trials.";
+        else if (currentTask === "stroop") instructText = "🎨 <strong>Stroop:</strong> Tap the COLOR button matching the INK color. 90 seconds.";
+        else instructText = "⬅️➡️ <strong>Flanker:</strong> Tap LEFT/RIGHT arrow matching CENTRAL arrow. 90 seconds.";
+        instructionText.innerHTML = instructText;
+        return true;
+    }
+    
+    // ==================== EVENT LISTENERS ====================
+    window.addEventListener("keydown", (e) => {
+        if (!taskActive) return;
+        if (currentTask === "cpt" && (e.key === " " || e.key === "Space")) {
+            e.preventDefault();
+            handleCPTResponse();
+        } else if ((currentTask === "stroop" || currentTask === "flanker") && e.key === "ArrowLeft") {
+            e.preventDefault();
+            handleTimedResponse("left");
+        } else if ((currentTask === "stroop" || currentTask === "flanker") && e.key === "ArrowRight") {
+            e.preventDefault();
+            handleTimedResponse("right");
+        }
+    });
+    
+    startBtn.addEventListener("click", startCurrentTask);
+    stopBtn.addEventListener("click", stopTask);
+    resetDataBtn.addEventListener("click", resetAllData);
+    sendToModelBtn.addEventListener("click", sendToModel);
+    
+    document.querySelectorAll(".task-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const task = btn.getAttribute("data-task");
+            if (switchTask(task)) {
+                document.querySelectorAll(".task-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            }
+        });
+    });
+    
+    updateButtonPanel();
+    document.querySelector(".task-btn[data-task='cpt']").classList.add("active");
+    updateMetricsDisplay();
+    
+    // Check if cluster data already exists from previous session
+    const savedClusterId = localStorage.getItem('asat_cluster_id');
+    if (savedClusterId !== null) {
+        storedClusterId = parseInt(savedClusterId);
+        storedAttentionGroup = localStorage.getItem('asat_attention_group');
+        trainingSection.style.display = "block";
+    }
+</script>
+</body>
+</html>
