@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Schulte Table - Training</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(145deg, #1e2b3c 0%, #0f1a24 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px;
+        }
+        .game-container {
+            background: rgba(22, 34, 48, 0.7);
+            backdrop-filter: blur(6px);
+            border-radius: 64px;
+            padding: 24px 28px 36px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+            border: 1px solid #ffdd99;
+            max-width: 850px;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffe3a3, #ffbc6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .level-badge {
+            background: #ffb851;
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: #1f3a44;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 28px;
+            background: #0c1c26;
+            padding: 10px 26px;
+            border-radius: 60px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffefc0;
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+        .stat span {
+            background: #1f4055;
+            padding: 4px 18px;
+            border-radius: 50px;
+            font-weight: 800;
+            color: #ffeaad;
+            font-size: 1.9rem;
+            font-family: monospace;
+        }
+        .schulte-grid {
+            display: grid;
+            justify-content: center;
+            gap: 10px;
+            margin: 25px 0 20px;
+            padding: 12px;
+            background: #1e3342;
+            border-radius: 48px;
+        }
+        .grid-cell {
+            background: radial-gradient(circle at 30% 35%, #fff7e8, #ffefd3);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: #1f5068;
+            cursor: pointer;
+            transition: 0.08s ease;
+            box-shadow: 0 6px 0 #8b6c42;
+            border: 2px solid #ffd6a5;
+            aspect-ratio: 1;
+            min-width: 65px;
+        }
+        .grid-cell:active { transform: translateY(3px); box-shadow: 0 2px 0 #8b6c42; }
+        .grid-cell.completed {
+            background: #b7d968;
+            color: #2a572c;
+            box-shadow: 0 4px 0 #5c8230;
+            cursor: default;
+        }
+        .timer-display {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: monospace;
+            background: #00000066;
+            padding: 5px 20px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .message-panel {
+            background: #0c232f;
+            border-radius: 60px;
+            padding: 12px 24px;
+            text-align: center;
+            color: #ffdd99;
+            margin-top: 15px;
+        }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 650px) {
+            .grid-cell { font-size: 1.3rem; min-width: 52px; }
+            .stat span { font-size: 1.4rem; min-width: 65px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="header">
+        <div class="title">📊 SCHULTE TABLE</div>
+        <div class="level-badge">Level: 1-25 ↑</div>
+    </div>
+    <div class="stats-panel">
+        <div class="stat">Next: <span id="nextTarget">1</span></div>
+        <div class="stat">Time: <span id="timerDisplay">0.00 s</span></div>
+    </div>
+    <div id="gridContainer" class="schulte-grid"></div>
+    <div id="messagePanel" class="message-panel">✨ Tap numbers in order from 1 to 25 ✨</div>
+</div>
+
+<script>
+    class SchulteTraining {
+        constructor() {
+            this.gridSize = 5;
+            this.totalNumbers = 25;
+            this.gridData = [];
+            this.currentTarget = 1;
+            this.gameActive = true;
+            this.timerRunning = false;
+            this.startTime = null;
+            this.timerInterval = null;
+            this.isGameFinished = false;
+            this.timeLimit = 180;
+            this.completed = false;
+            
+            this.init();
+        }
+        
+        init() {
+            this.generateGrid();
+            this.renderGrid();
+            this.startTimerOnFirstClick();
+        }
+        
+        generateGrid() {
+            let numbers = Array.from({ length: this.totalNumbers }, (_, i) => i + 1);
+            for (let i = numbers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }
+            this.gridData = [];
+            for (let i = 0; i < this.gridSize; i++) {
+                this.gridData.push(numbers.slice(i * this.gridSize, (i + 1) * this.gridSize));
+            }
+        }
+        
+        renderGrid() {
+            const container = document.getElementById('gridContainer');
+            container.style.display = 'grid';
+            container.style.gridTemplateColumns = `repeat(${this.gridSize}, minmax(55px, 85px))`;
+            container.style.gap = '10px';
+            container.innerHTML = '';
+            
+            for (let i = 0; i < this.gridSize; i++) {
+                for (let j = 0; j < this.gridSize; j++) {
+                    const number = this.gridData[i][j];
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    if (number < this.currentTarget) {
+                        cell.classList.add('completed');
+                    }
+                    cell.textContent = number;
+                    cell.addEventListener('click', () => this.handleCellClick(number, cell));
+                    container.appendChild(cell);
+                }
+            }
+        }
+        
+        startTimerOnFirstClick() {
+            // Timer starts on first click
+        }
+        
+        startTimer() {
+            if (this.timerRunning) return;
+            this.startTime = performance.now();
+            this.timerRunning = true;
+            this.timerInterval = setInterval(() => this.updateTimer(), 50);
+        }
+        
+        updateTimer() {
+            if (!this.timerRunning || this.isGameFinished) return;
+            const elapsed = (performance.now() - this.startTime) / 1000;
+            document.getElementById('timerDisplay').textContent = elapsed.toFixed(2) + ' s';
+            
+            // Check time limit (3 minutes)
+            if (elapsed >= this.timeLimit && !this.isGameFinished) {
+                this.endGame(false);
+            }
+        }
+        
+        stopTimer() {
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+            this.timerRunning = false;
+        }
+        
+        handleCellClick(number, cell) {
+            if (this.isGameFinished) return;
+            
+            if (!this.timerRunning && number === 1) {
+                this.startTimer();
+            }
+            
+            if (number === this.currentTarget) {
+                cell.classList.add('completed');
+                this.currentTarget++;
+                document.getElementById('nextTarget').textContent = this.currentTarget;
+                
+                if (this.currentTarget > this.totalNumbers) {
+                    this.endGame(true);
+                }
+            } else if (this.timerRunning) {
+                cell.style.transform = 'scale(0.95)';
+                cell.style.background = '#ffc2a1';
+                setTimeout(() => {
+                    cell.style.transform = '';
+                    cell.style.background = '';
+                }, 150);
+            }
+        }
+        
+        endGame(success) {
+            if (this.isGameFinished) return;
+            this.isGameFinished = true;
+            this.stopTimer();
+            
+            if (success) {
+                const elapsed = (performance.now() - this.startTime) / 1000;
+                document.getElementById('messagePanel').innerHTML = `✅ Completed! Time: ${elapsed.toFixed(2)} seconds!`;
+                document.getElementById('messagePanel').style.background = '#1e4620';
+                this.completeTraining();
+            } else {
+                document.getElementById('messagePanel').innerHTML = `⏰ Time's up! Game ended.`;
+                document.getElementById('messagePanel').style.background = '#8b3a3a';
+            }
+        }
+        
+        completeTraining() {
+            if (this.completed) return;
+            this.completed = true;
+            
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ Task Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            
+            setTimeout(() => banner.remove(), 5000);
+        }
+    }
+    
+    new SchulteTraining();
+</script>
+</body>
+</html>
