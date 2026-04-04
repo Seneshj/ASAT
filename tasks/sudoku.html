@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sudoku - Training</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(145deg, #2c3e4e 0%, #1d2f3f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
+        }
+        .game-container {
+            background: radial-gradient(circle at 20% 20%, #4a627a, #2c3e50);
+            border-radius: 60px;
+            padding: 28px 30px 40px;
+            box-shadow: 0 25px 35px #0f1a24;
+            border: 2px solid #e6c7a2;
+            max-width: 700px;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fada9f, #ffb66b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #1f313e;
+            padding: 8px 25px;
+            border-radius: 60px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f5e2c1;
+            font-weight: 700;
+        }
+        .stat span {
+            background: #2d4a5e;
+            padding: 5px 15px;
+            border-radius: 40px;
+            font-weight: 800;
+            color: #fee2a3;
+            font-size: 1.3rem;
+        }
+        table.sudoku-table {
+            border-collapse: collapse;
+            background: #f4efe2;
+            border: 5px solid #a7714c;
+            margin: 20px auto;
+        }
+        .sudoku-cell {
+            width: 55px;
+            height: 55px;
+            border: 1px solid #bba88b;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: #fdfaef;
+            cursor: pointer;
+        }
+        .sudoku-cell.given {
+            background: #e5dac6;
+            color: #2b2b2b;
+        }
+        .sudoku-cell.selected {
+            background: #ffe68f;
+            box-shadow: inset 0 0 0 3px #cc9f5f;
+        }
+        .sudoku-cell.conflict {
+            background: #fbb5b5 !important;
+            color: #a00000 !important;
+        }
+        table.sudoku-table tr:nth-child(3) td,
+        table.sudoku-table tr:nth-child(6) td {
+            border-bottom: 3px solid #9b6f4b;
+        }
+        table.sudoku-table td:nth-child(3),
+        table.sudoku-table td:nth-child(6) {
+            border-right: 3px solid #9b6f4b;
+        }
+        .num-pad {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .num-btn {
+            background: #f3b35e;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            border-radius: 50px;
+            color: #1d333f;
+            cursor: pointer;
+            min-width: 65px;
+        }
+        .num-btn.erase {
+            background: #e74c3c;
+            color: white;
+        }
+        .message-area {
+            text-align: center;
+            font-size: 1rem;
+            margin: 15px 0;
+            background: #233845;
+            padding: 10px;
+            border-radius: 40px;
+            color: #ffdca5;
+        }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 600px) {
+            .sudoku-cell { width: 40px; height: 40px; font-size: 1.2rem; }
+            .num-btn { padding: 8px 15px; font-size: 1.2rem; min-width: 50px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="header">
+        <div class="title">📐 SUDOKU</div>
+        <div class="stats-panel">
+            <div class="stat">📊 <span id="filledCount">0</span></div>
+            <div class="stat">❌ <span id="mistakesCount">0</span></div>
+        </div>
+    </div>
+
+    <div id="sudokuBoard"></div>
+
+    <div class="num-pad" id="numPad"></div>
+
+    <div id="message" class="message-area">✨ Select a cell and tap a number ✨</div>
+</div>
+
+<script>
+    (function() {
+        const SIZE = 9;
+        const EMPTY = 0;
+        
+        // Easy puzzle for training
+        const EASY_PUZZLE = [
+            [5,3,0,0,7,0,0,0,0],
+            [6,0,0,1,9,5,0,0,0],
+            [0,9,8,0,0,0,0,6,0],
+            [8,0,0,0,6,0,0,0,3],
+            [4,0,0,8,0,3,0,0,1],
+            [7,0,0,0,2,0,0,0,6],
+            [0,6,0,0,0,0,2,8,0],
+            [0,0,0,4,1,9,0,0,5],
+            [0,0,0,0,8,0,0,7,9]
+        ];
+        
+        let board = [];
+        let initialBoard = [];
+        let selectedRow = -1, selectedCol = -1;
+        let mistakes = 0;
+        let completed = false;
+        
+        function copyBoard(src) {
+            return src.map(row => [...row]);
+        }
+        
+        function isMoveValid(row, col, num) {
+            if (num === EMPTY) return true;
+            for (let c = 0; c < SIZE; c++) {
+                if (c !== col && board[row][c] === num) return false;
+            }
+            for (let r = 0; r < SIZE; r++) {
+                if (r !== row && board[r][col] === num) return false;
+            }
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+            for (let r = boxRow; r < boxRow + 3; r++) {
+                for (let c = boxCol; c < boxCol + 3; c++) {
+                    if (r !== row && c !== col && board[r][c] === num) return false;
+                }
+            }
+            return true;
+        }
+        
+        function isCellConflict(row, col) {
+            if (board[row][col] === EMPTY) return false;
+            return !isMoveValid(row, col, board[row][col]);
+        }
+        
+        function isBoardComplete() {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] === EMPTY) return false;
+                }
+            }
+            return true;
+        }
+        
+        function renderBoard() {
+            let html = '<table class="sudoku-table">';
+            for (let r = 0; r < SIZE; r++) {
+                html += '<tr>';
+                for (let c = 0; c < SIZE; c++) {
+                    const value = board[r][c];
+                    const isGiven = initialBoard[r][c] !== 0;
+                    let cellClass = 'sudoku-cell';
+                    if (isGiven) cellClass += ' given';
+                    if (selectedRow === r && selectedCol === c) cellClass += ' selected';
+                    if (isCellConflict(r, c)) cellClass += ' conflict';
+                    html += `<td><div class="${cellClass}" data-row="${r}" data-col="${c}">${value !== 0 ? value : ''}</div></td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('sudokuBoard').innerHTML = html;
+            
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (completed) return;
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    if (initialBoard[row][col] !== 0) return;
+                    selectedRow = row;
+                    selectedCol = col;
+                    renderBoard();
+                });
+            });
+            
+            // Update filled count
+            let filled = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] !== EMPTY) filled++;
+                }
+            }
+            document.getElementById('filledCount').textContent = filled;
+            document.getElementById('mistakesCount').textContent = mistakes;
+        }
+        
+        function setNumber(num) {
+            if (completed) return;
+            if (selectedRow === -1 || selectedCol === -1) {
+                document.getElementById('message').innerHTML = '⚠️ Select a cell first';
+                document.getElementById('message').style.background = '#8b3a3a';
+                setTimeout(() => {
+                    document.getElementById('message').style.background = '#233845';
+                    document.getElementById('message').innerHTML = '✨ Select a cell and tap a number ✨';
+                }, 1500);
+                return;
+            }
+            if (initialBoard[selectedRow][selectedCol] !== 0) {
+                document.getElementById('message').innerHTML = '🔒 Cannot change given numbers';
+                return;
+            }
+            
+            const oldVal = board[selectedRow][selectedCol];
+            board[selectedRow][selectedCol] = num;
+            
+            if (num !== 0 && !isMoveValid(selectedRow, selectedCol, num)) {
+                mistakes++;
+                document.getElementById('message').innerHTML = '❌ Conflict! Mistake counted';
+                document.getElementById('message').style.background = '#8b3a3a';
+                setTimeout(() => {
+                    document.getElementById('message').style.background = '#233845';
+                }, 1500);
+            } else {
+                document.getElementById('message').innerHTML = '✓ Valid move';
+                document.getElementById('message').style.background = '#2a6b3a';
+                setTimeout(() => {
+                    document.getElementById('message').style.background = '#233845';
+                    document.getElementById('message').innerHTML = '✨ Select a cell and tap a number ✨';
+                }, 800);
+            }
+            
+            renderBoard();
+            
+            if (isBoardComplete()) {
+                document.getElementById('message').innerHTML = '🎉 CONGRATULATIONS! Puzzle solved! 🎉';
+                document.getElementById('message').style.background = '#2a6b3a';
+                completed = true;
+                completeTraining();
+            }
+        }
+        
+        function newGame() {
+            initialBoard = copyBoard(EASY_PUZZLE);
+            board = copyBoard(EASY_PUZZLE);
+            selectedRow = -1;
+            selectedCol = -1;
+            mistakes = 0;
+            completed = false;
+            renderBoard();
+            document.getElementById('message').innerHTML = '✨ New puzzle! Select a cell and tap a number ✨';
+            document.getElementById('message').style.background = '#233845';
+        }
+        
+        function createNumPad() {
+            const pad = document.getElementById('numPad');
+            pad.innerHTML = '';
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'num-btn';
+                btn.textContent = i;
+                btn.addEventListener('click', () => setNumber(i));
+                pad.appendChild(btn);
+            }
+            const eraseBtn = document.createElement('button');
+            eraseBtn.className = 'num-btn erase';
+            eraseBtn.textContent = '⌫ Erase';
+            eraseBtn.addEventListener('click', () => setNumber(0));
+            pad.appendChild(eraseBtn);
+        }
+        
+        function completeTraining() {
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ Sudoku Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            setTimeout(() => banner.remove(), 5000);
+        }
+        
+        window.addEventListener('keydown', (e) => {
+            if (completed) return;
+            if (e.key >= '1' && e.key <= '9') {
+                setNumber(parseInt(e.key));
+            } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+                setNumber(0);
+            }
+        });
+        
+        createNumPad();
+        newGame();
+    })();
+</script>
+</body>
+</html>

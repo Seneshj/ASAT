@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CPT Training - Attention Task</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+        .no-go-letters {
+            background: #ff9800;
+            color: white;
+            padding: 10px;
+            border-radius: 50px;
+            display: inline-block;
+            margin: 15px 0;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .stimulus {
+            font-size: 8rem;
+            font-weight: bold;
+            margin: 40px 0;
+            padding: 30px;
+            background: #f0f0f0;
+            border-radius: 30px;
+            font-family: monospace;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            flex: 1;
+            min-width: 100px;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 30px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .space-btn {
+            background: #4caf50;
+            font-size: 2rem;
+            padding: 20px 50px;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>🎯 CPT Training</h1>
+    <p>Press SPACE for any letter EXCEPT the NO-GO letters</p>
+    
+    <div class="no-go-letters" id="noGoLetters">⚠️ Loading...</div>
+    
+    <div class="stimulus" id="stimulus">—</div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <div>Trial</div>
+            <div class="stat-value" id="trialNum">0</div>
+        </div>
+        <div class="stat-card">
+            <div>Correct</div>
+            <div class="stat-value" id="correctCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div>Errors</div>
+            <div class="stat-value" id="errorCount">0</div>
+        </div>
+    </div>
+    
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <button class="space-btn" id="spaceBtn">␣ SPACE</button>
+    <button id="resetBtn">Reset</button>
+    
+    <div class="message" id="message">Ready! Press SPACE when ready to start</div>
+</div>
+
+<script>
+    class CPTTraining {
+        constructor() {
+            this.totalTrials = 50;
+            this.currentTrial = 0;
+            this.correctCount = 0;
+            this.errorCount = 0;
+            this.noGoLetters = [];
+            this.allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            this.trials = [];
+            this.gameActive = false;
+            this.waitingForResponse = false;
+            this.currentStimulus = null;
+            this.stimulusTimeout = null;
+            this.completed = false;
+            
+            this.init();
+        }
+        
+        init() {
+            // Randomly select 2 no-go letters
+            const shuffled = [...this.allLetters];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            this.noGoLetters = shuffled.slice(0, 2);
+            
+            // Display no-go letters
+            document.getElementById('noGoLetters').innerHTML = `🚫 NO-GO: ${this.noGoLetters.join('  and  ')} 🚫`;
+            
+            this.setupEventListeners();
+            this.generateTrials();
+        }
+        
+        generateTrials() {
+            this.trials = [];
+            for (let i = 0; i < this.totalTrials; i++) {
+                // 80% Go trials, 20% No-Go trials
+                const isGo = Math.random() < 0.8;
+                let stimulus;
+                if (isGo) {
+                    // Pick a letter that is NOT a no-go letter
+                    const availableLetters = this.allLetters.filter(l => !this.noGoLetters.includes(l));
+                    stimulus = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+                } else {
+                    // Pick a random no-go letter
+                    stimulus = this.noGoLetters[Math.floor(Math.random() * this.noGoLetters.length)];
+                }
+                this.trials.push({
+                    stimulus: stimulus,
+                    isGo: isGo,
+                    responded: false
+                });
+            }
+        }
+        
+        setupEventListeners() {
+            document.getElementById('spaceBtn').addEventListener('click', () => this.handleResponse());
+            document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+            
+            window.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Space') {
+                    e.preventDefault();
+                    this.handleResponse();
+                }
+            });
+        }
+        
+        startGame() {
+            this.gameActive = true;
+            this.currentTrial = 0;
+            this.correctCount = 0;
+            this.errorCount = 0;
+            this.updateStats();
+            this.showTrial();
+            document.getElementById('message').innerHTML = '🎯 Game started! Press SPACE for Go letters, NOT for No-Go letters';
+            document.getElementById('message').style.background = '#d4edda';
+            document.getElementById('message').style.color = '#155724';
+        }
+        
+        showTrial() {
+            if (!this.gameActive) return;
+            if (this.currentTrial >= this.totalTrials) {
+                this.endGame();
+                return;
+            }
+            
+            const trial = this.trials[this.currentTrial];
+            this.currentStimulus = trial;
+            this.waitingForResponse = true;
+            trial.responded = false;
+            
+            document.getElementById('stimulus').textContent = trial.stimulus;
+            document.getElementById('stimulus').style.background = '#f0f0f0';
+            
+            // Set timeout for response (1000ms)
+            this.stimulusTimeout = setTimeout(() => {
+                if (this.waitingForResponse && !trial.responded) {
+                    // No response - omission error for Go, correct for No-Go
+                    if (trial.isGo) {
+                        this.errorCount++;
+                        this.showMessage('❌ Omission! You missed a Go letter', 'error');
+                    } else {
+                        this.correctCount++;
+                        this.showMessage('✓ Correct! No response for No-Go', 'correct');
+                    }
+                    this.currentTrial++;
+                    this.updateStats();
+                    this.waitingForResponse = false;
+                    
+                    // Clear stimulus
+                    document.getElementById('stimulus').textContent = '—';
+                    
+                    // Next trial after short delay
+                    setTimeout(() => this.showTrial(), 500);
+                }
+            }, 1000);
+        }
+        
+        handleResponse() {
+            if (!this.gameActive || !this.waitingForResponse || !this.currentStimulus) return;
+            
+            clearTimeout(this.stimulusTimeout);
+            const trial = this.currentStimulus;
+            trial.responded = true;
+            this.waitingForResponse = false;
+            
+            let isCorrect = false;
+            if (trial.isGo) {
+                isCorrect = true;
+                this.correctCount++;
+                this.showMessage('✓ Correct! Good response', 'correct');
+            } else {
+                isCorrect = false;
+                this.errorCount++;
+                this.showMessage('❌ Commission error! You pressed on a No-Go letter', 'error');
+            }
+            
+            // Visual feedback
+            document.getElementById('stimulus').style.background = isCorrect ? '#c8e6c9' : '#ffcdd2';
+            
+            this.currentTrial++;
+            this.updateStats();
+            
+            // Clear stimulus
+            setTimeout(() => {
+                document.getElementById('stimulus').textContent = '—';
+            }, 200);
+            
+            // Next trial
+            setTimeout(() => this.showTrial(), 500);
+        }
+        
+        showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.innerHTML = text;
+            if (type === 'correct') {
+                msgDiv.style.background = '#d4edda';
+                msgDiv.style.color = '#155724';
+            } else {
+                msgDiv.style.background = '#f8d7da';
+                msgDiv.style.color = '#721c24';
+            }
+            setTimeout(() => {
+                if (this.gameActive) {
+                    msgDiv.innerHTML = '🎯 Game in progress...';
+                    msgDiv.style.background = '#d4edda';
+                }
+            }, 1000);
+        }
+        
+        updateStats() {
+            document.getElementById('trialNum').textContent = `${this.currentTrial}/${this.totalTrials}`;
+            document.getElementById('correctCount').textContent = this.correctCount;
+            document.getElementById('errorCount').textContent = this.errorCount;
+            
+            const percent = (this.currentTrial / this.totalTrials) * 100;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+        
+        endGame() {
+            this.gameActive = false;
+            this.waitingForResponse = false;
+            if (this.stimulusTimeout) clearTimeout(this.stimulusTimeout);
+            
+            const accuracy = (this.correctCount / this.totalTrials) * 100;
+            document.getElementById('message').innerHTML = `🎉 Game Complete! Accuracy: ${accuracy.toFixed(1)}% (${this.correctCount}/${this.totalTrials} correct) 🎉`;
+            document.getElementById('message').style.background = '#d4edda';
+            document.getElementById('message').style.color = '#155724';
+            document.getElementById('stimulus').textContent = '✅';
+            
+            this.completeTraining();
+        }
+        
+        resetGame() {
+            if (this.stimulusTimeout) clearTimeout(this.stimulusTimeout);
+            this.gameActive = false;
+            this.waitingForResponse = false;
+            this.currentTrial = 0;
+            this.correctCount = 0;
+            this.errorCount = 0;
+            this.completed = false;
+            this.generateTrials();
+            this.updateStats();
+            document.getElementById('stimulus').textContent = '—';
+            document.getElementById('message').innerHTML = 'Ready! Press SPACE to start';
+            document.getElementById('message').style.background = '#e2e3e5';
+            document.getElementById('message').style.color = '#383d41';
+            document.getElementById('progressFill').style.width = '0%';
+            
+            // Wait for space to start
+            const startHandler = (e) => {
+                if (e.key === ' ' || e.key === 'Space') {
+                    e.preventDefault();
+                    window.removeEventListener('keydown', startHandler);
+                    this.startGame();
+                }
+            };
+            window.addEventListener('keydown', startHandler);
+            
+            // Also handle button click
+            const btnHandler = () => {
+                document.getElementById('spaceBtn').removeEventListener('click', btnHandler);
+                this.startGame();
+            };
+            document.getElementById('spaceBtn').addEventListener('click', btnHandler, { once: true });
+        }
+        
+        completeTraining() {
+            if (this.completed) return;
+            this.completed = true;
+            
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ CPT Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            
+            setTimeout(() => banner.remove(), 5000);
+        }
+    }
+    
+    const game = new CPTTraining();
+    game.resetGame();
+</script>
+</body>
+</html>

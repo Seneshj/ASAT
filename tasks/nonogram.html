@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Nonogram - Training (Heart & Rocket)</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(145deg, #2d3e4b 0%, #1a2c38 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px;
+        }
+        .game-container {
+            background: rgba(30, 45, 55, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 48px;
+            padding: 24px 28px 32px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            border: 1px solid #ffd9a5;
+            max-width: 95vw;
+            overflow-x: auto;
+        }
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffe3b3, #ffbc6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #1f3a48;
+            padding: 8px 20px;
+            border-radius: 50px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffefc0;
+            font-weight: 600;
+        }
+        .stat span {
+            background: #0e2c38;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-weight: 800;
+            color: #ffdd99;
+            font-size: 1.4rem;
+        }
+        .puzzle-status {
+            display: flex;
+            gap: 15px;
+            background: #1f3543;
+            padding: 8px 20px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .puzzle-status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffefc0;
+        }
+        .puzzle-status-item.completed {
+            color: #48bb78;
+        }
+        .puzzle-status-item .status-icon {
+            font-size: 1.2rem;
+        }
+        .nonogram-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 15px;
+            overflow-x: auto;
+        }
+        .grid-container {
+            display: inline-grid;
+            background: #e9e2d4;
+            border: 3px solid #a88656;
+        }
+        .game-cell {
+            background: #fdf7ed;
+            border: 1px solid #cbb587;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            width: 45px;
+            height: 45px;
+        }
+        .game-cell.filled {
+            background: #2d5f6e;
+            box-shadow: inset 0 0 0 1px #5f9eae;
+        }
+        .game-cell.marked {
+            background: #cddde0;
+            position: relative;
+        }
+        .game-cell.marked::after {
+            content: "X";
+            font-size: 1rem;
+            color: #8b5a2b;
+            font-weight: bold;
+        }
+        .puzzle-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .puzzle-btn {
+            background: #2c4b5e;
+            border: none;
+            font-weight: bold;
+            padding: 8px 25px;
+            border-radius: 40px;
+            color: #f3e1b3;
+            cursor: pointer;
+        }
+        .puzzle-btn.active {
+            background: #ffb851;
+            color: #1f3a44;
+        }
+        .puzzle-btn.completed {
+            background: #48bb78;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        .mode-btn {
+            background: #3c5e6e;
+            border: none;
+            padding: 8px 25px;
+            border-radius: 40px;
+            font-weight: bold;
+            color: #ffeac2;
+            cursor: pointer;
+        }
+        .mode-btn.active {
+            background: #ffb851;
+            color: #1f3c4a;
+        }
+        .check-btn {
+            background: #f3ae4b;
+            border: none;
+            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: #1f3c4a;
+            cursor: pointer;
+        }
+        .message-area {
+            background: #0c232f;
+            border-radius: 40px;
+            padding: 10px 20px;
+            text-align: center;
+            margin: 15px 0 8px;
+            color: #ffdd99;
+        }
+        .progress-bar-container {
+            background: #1e2a3e;
+            border-radius: 30px;
+            height: 15px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #48bb78, #ffb851);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 30px;
+        }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 700px) {
+            .game-cell { width: 32px; height: 32px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="header">
+        <div class="title">🎨 NONOGRAM · Heart & Rocket</div>
+        <div class="stats-panel">
+            <div class="stat">🔲<span id="filledCount">0</span></div>
+            <div class="stat">✓<span id="mistakeHint">0</span></div>
+        </div>
+    </div>
+
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="puzzle-status">
+        <div class="puzzle-status-item" id="heartStatus">❤️ Heart: ⬜</div>
+        <div class="puzzle-status-item" id="rocketStatus">🚀 Rocket: ⬜</div>
+    </div>
+
+    <div class="nonogram-wrapper" id="nonogramWrapper"></div>
+
+    <div class="puzzle-selector">
+        <button class="puzzle-btn" data-puzzle="heart">❤️ Heart Puzzle</button>
+        <button class="puzzle-btn" data-puzzle="rocket">🚀 Rocket Puzzle</button>
+    </div>
+
+    <div class="controls">
+        <button class="mode-btn active" id="modeFill">✏️ Fill</button>
+        <button class="mode-btn" id="modeMark">✖️ Mark</button>
+        <button class="check-btn" id="checkBtn">✅ Verify</button>
+    </div>
+
+    <div id="messageArea" class="message-area">✨ Complete BOTH Heart and Rocket puzzles ✨</div>
+</div>
+
+<script>
+    (function() {
+        const PUZZLES = {
+            heart: {
+                name: "❤️ Heart",
+                solution: [
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,1,1,0,0,0,0,1,1,0],
+                    [1,1,1,1,0,0,1,1,1,1],
+                    [1,1,1,1,1,1,1,1,1,1],
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [0,0,1,1,1,1,1,1,0,0],
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,0,0,1,1,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            rocket: {
+                name: "🚀 Rocket",
+                solution: [
+                    [0,0,0,0,1,1,0,0,0,0],
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,1,1,1,1,1,1,0,0],
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [1,1,1,1,1,1,1,1,1,1],
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,0,0,1,1,0,0,0,0],
+                    [0,0,0,0,1,1,0,0,0,0]
+                ]
+            }
+        };
+
+        const SIZE = 10;
+        let currentPuzzle = 'heart';
+        let solution = [];
+        let playerGrid = [];
+        let fillMode = true;
+        let completedPuzzles = new Set();
+        let allCompleted = false;
+
+        const wrapper = document.getElementById('nonogramWrapper');
+        const filledCountSpan = document.getElementById('filledCount');
+        const mistakeHintSpan = document.getElementById('mistakeHint');
+        const messageDiv = document.getElementById('messageArea');
+        const progressBar = document.getElementById('progressBar');
+        const heartStatusSpan = document.getElementById('heartStatus');
+        const rocketStatusSpan = document.getElementById('rocketStatus');
+
+        function updateProgress() {
+            const percent = (completedPuzzles.size / 2) * 100;
+            progressBar.style.width = `${percent}%`;
+            
+            if (completedPuzzles.has('heart')) {
+                heartStatusSpan.innerHTML = '❤️ Heart: ✅';
+                heartStatusSpan.classList.add('completed');
+            } else {
+                heartStatusSpan.innerHTML = '❤️ Heart: ⬜';
+                heartStatusSpan.classList.remove('completed');
+            }
+            
+            if (completedPuzzles.has('rocket')) {
+                rocketStatusSpan.innerHTML = '🚀 Rocket: ✅';
+                rocketStatusSpan.classList.add('completed');
+            } else {
+                rocketStatusSpan.innerHTML = '🚀 Rocket: ⬜';
+                rocketStatusSpan.classList.remove('completed');
+            }
+            
+            if (completedPuzzles.size === 2 && !allCompleted) {
+                allCompleted = true;
+                completeAllPuzzles();
+            }
+        }
+
+        function loadPuzzle(puzzleName) {
+            currentPuzzle = puzzleName;
+            const puzzle = PUZZLES[puzzleName];
+            solution = puzzle.solution.map(row => row.map(cell => cell === 1));
+            playerGrid = Array(SIZE).fill().map(() => Array(SIZE).fill(null));
+            updateStats();
+            renderGame();
+            
+            // Update active button
+            document.querySelectorAll('.puzzle-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.puzzle === puzzleName) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            messageDiv.innerHTML = `✨ ${puzzle.name} - Fill cells to reveal the picture ✨`;
+            messageDiv.style.background = '#0c232f';
+        }
+
+        function updateStats() {
+            let filled = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (playerGrid[r][c] === 'filled') filled++;
+                }
+            }
+            filledCountSpan.textContent = filled;
+        }
+
+        function getRowClues(row) {
+            let clues = [];
+            let count = 0;
+            for (let c = 0; c < SIZE; c++) {
+                if (solution[row][c]) {
+                    count++;
+                } else {
+                    if (count > 0) {
+                        clues.push(count);
+                        count = 0;
+                    }
+                }
+            }
+            if (count > 0) clues.push(count);
+            return clues.length === 0 ? [0] : clues;
+        }
+
+        function getColClues(col) {
+            let clues = [];
+            let count = 0;
+            for (let r = 0; r < SIZE; r++) {
+                if (solution[r][col]) {
+                    count++;
+                } else {
+                    if (count > 0) {
+                        clues.push(count);
+                        count = 0;
+                    }
+                }
+            }
+            if (count > 0) clues.push(count);
+            return clues.length === 0 ? [0] : clues;
+        }
+
+        function renderGame() {
+            const rowClues = [];
+            for (let i = 0; i < SIZE; i++) rowClues.push(getRowClues(i));
+            const colClues = [];
+            for (let j = 0; j < SIZE; j++) colClues.push(getColClues(j));
+
+            let maxRowClueLen = 0;
+            for (let r = 0; r < SIZE; r++) maxRowClueLen = Math.max(maxRowClueLen, rowClues[r].length);
+            let maxColClueLen = 0;
+            for (let c = 0; c < SIZE; c++) maxColClueLen = Math.max(maxColClueLen, colClues[c].length);
+
+            wrapper.innerHTML = '';
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+            gridContainer.style.gridTemplateColumns = `repeat(${SIZE + maxRowClueLen}, minmax(32px, 52px))`;
+
+            for (let i = 0; i < SIZE + maxColClueLen; i++) {
+                for (let j = 0; j < SIZE + maxRowClueLen; j++) {
+                    const cell = document.createElement('div');
+                    cell.style.display = 'flex';
+                    cell.style.alignItems = 'center';
+                    cell.style.justifyContent = 'center';
+                    cell.style.border = '1px solid #cbb587';
+                    
+                    if (i < maxColClueLen && j < maxRowClueLen) {
+                        cell.style.backgroundColor = '#e2d5bf';
+                        cell.textContent = '';
+                    } else if (i < maxColClueLen && j >= maxRowClueLen) {
+                        const colIdx = j - maxRowClueLen;
+                        const clueList = colClues[colIdx];
+                        const clueIndex = i;
+                        cell.style.backgroundColor = '#f7efdf';
+                        cell.textContent = clueIndex < clueList.length ? clueList[clueIndex] : '';
+                    } else if (i >= maxColClueLen && j < maxRowClueLen) {
+                        const rowIdx = i - maxColClueLen;
+                        const clueList = rowClues[rowIdx];
+                        const clueIndexFromEnd = clueList.length - (maxRowClueLen - j);
+                        cell.style.backgroundColor = '#f7efdf';
+                        cell.textContent = (clueIndexFromEnd >= 0 && clueIndexFromEnd < clueList.length) ? clueList[clueIndexFromEnd] : '';
+                    } else {
+                        const rowIdx = i - maxColClueLen;
+                        const colIdx = j - maxRowClueLen;
+                        cell.className = 'game-cell';
+                        if (playerGrid[rowIdx][colIdx] === 'filled') {
+                            cell.classList.add('filled');
+                            cell.textContent = '■';
+                        } else if (playerGrid[rowIdx][colIdx] === 'marked') {
+                            cell.classList.add('marked');
+                            cell.textContent = '';
+                        } else {
+                            cell.textContent = '';
+                        }
+                        cell.addEventListener('click', (function(r, c) {
+                            return function() { handleCellClick(r, c); };
+                        })(rowIdx, colIdx));
+                    }
+                    gridContainer.appendChild(cell);
+                }
+            }
+            wrapper.appendChild(gridContainer);
+        }
+
+        function handleCellClick(row, col) {
+            if (allCompleted) return;
+            
+            if (fillMode) {
+                if (playerGrid[row][col] === 'filled') {
+                    playerGrid[row][col] = null;
+                } else {
+                    playerGrid[row][col] = 'filled';
+                }
+            } else {
+                if (playerGrid[row][col] === 'marked') {
+                    playerGrid[row][col] = null;
+                } else {
+                    playerGrid[row][col] = 'marked';
+                }
+            }
+            updateStats();
+            renderGame();
+        }
+
+        function verifySolution() {
+            if (completedPuzzles.has(currentPuzzle)) {
+                messageDiv.innerHTML = `✅ ${PUZZLES[currentPuzzle].name} already completed! Try the other puzzle.`;
+                messageDiv.style.background = '#2a6b3a';
+                setTimeout(() => {
+                    messageDiv.style.background = '#0c232f';
+                }, 2000);
+                return;
+            }
+            
+            let correct = true;
+            let wrongCount = 0;
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const shouldBeFilled = solution[r][c];
+                    const playerState = playerGrid[r][c];
+                    const isFilled = (playerState === 'filled');
+                    if (shouldBeFilled !== isFilled) {
+                        correct = false;
+                        wrongCount++;
+                    }
+                }
+            }
+            
+            if (correct) {
+                messageDiv.innerHTML = `🎉 PERFECT! ${PUZZLES[currentPuzzle].name} solved! 🎉`;
+                messageDiv.style.background = '#2a6b3a';
+                completedPuzzles.add(currentPuzzle);
+                updateProgress();
+                
+                // Mark button as completed
+                const btn = document.querySelector(`.puzzle-btn[data-puzzle="${currentPuzzle}"]`);
+                btn.classList.add('completed');
+                
+                if (completedPuzzles.size === 2) {
+                    messageDiv.innerHTML = '🎉 AMAZING! Both puzzles completed! 🎉';
+                } else {
+                    // Auto-switch to the other puzzle
+                    const otherPuzzle = currentPuzzle === 'heart' ? 'rocket' : 'heart';
+                    setTimeout(() => {
+                        loadPuzzle(otherPuzzle);
+                        messageDiv.innerHTML = `✨ Now complete the ${PUZZLES[otherPuzzle].name} puzzle! ✨`;
+                        messageDiv.style.background = '#0c232f';
+                    }, 2000);
+                }
+            } else {
+                messageDiv.innerHTML = `❌ ${wrongCount} cells incorrect. Keep solving! Use X marks to help.`;
+                messageDiv.style.background = '#8b3a3a';
+                mistakeHintSpan.textContent = wrongCount;
+                setTimeout(() => {
+                    if (!completedPuzzles.has(currentPuzzle)) {
+                        messageDiv.style.background = '#0c232f';
+                        messageDiv.innerHTML = '✨ Keep going! Use X marks to help ✨';
+                        mistakeHintSpan.textContent = '0';
+                    }
+                }, 3000);
+            }
+        }
+
+        function completeAllPuzzles() {
+            messageDiv.innerHTML = '🏆 CONGRATULATIONS! You completed both Heart and Rocket puzzles! 🏆';
+            messageDiv.style.background = '#1e4620';
+            
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ Both Nonogram Puzzles Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            
+            setTimeout(() => banner.remove(), 5000);
+        }
+
+        function setMode(fill) {
+            fillMode = fill;
+            if (fillMode) {
+                document.getElementById('modeFill').classList.add('active');
+                document.getElementById('modeMark').classList.remove('active');
+            } else {
+                document.getElementById('modeMark').classList.add('active');
+                document.getElementById('modeFill').classList.remove('active');
+            }
+        }
+
+        document.getElementById('modeFill').addEventListener('click', () => setMode(true));
+        document.getElementById('modeMark').addEventListener('click', () => setMode(false));
+        document.getElementById('checkBtn').addEventListener('click', verifySolution);
+        
+        document.querySelectorAll('.puzzle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (allCompleted) return;
+                loadPuzzle(btn.dataset.puzzle);
+            });
+        });
+
+        loadPuzzle('heart');
+    })();
+</script>
+</body>
+</html>

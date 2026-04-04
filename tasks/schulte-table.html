@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Schulte Table - Training (4 Levels)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(145deg, #1e2b3c 0%, #0f1a24 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px;
+        }
+        .game-container {
+            background: rgba(22, 34, 48, 0.7);
+            backdrop-filter: blur(6px);
+            border-radius: 64px;
+            padding: 24px 28px 36px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+            border: 1px solid #ffdd99;
+            max-width: 900px;
+            width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffe3a3, #ffbc6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .level-badge {
+            background: #ffb851;
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #1f3a44;
+        }
+        .level-selector {
+            display: flex;
+            gap: 10px;
+            background: #1f3543;
+            padding: 8px 18px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .level-btn {
+            background: #2c4b5e;
+            border: none;
+            font-weight: bold;
+            padding: 8px 18px;
+            border-radius: 40px;
+            color: #f3e1b3;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .level-btn.active {
+            background: #ffb851;
+            color: #1f3a44;
+        }
+        .level-btn.completed {
+            background: #48bb78;
+            color: white;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 28px;
+            background: #0c1c26;
+            padding: 10px 26px;
+            border-radius: 60px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffefc0;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .stat span {
+            background: #1f4055;
+            padding: 4px 18px;
+            border-radius: 50px;
+            font-weight: 800;
+            color: #ffeaad;
+            font-size: 1.6rem;
+            font-family: monospace;
+        }
+        .schulte-grid {
+            display: grid;
+            justify-content: center;
+            gap: 10px;
+            margin: 25px 0 20px;
+            padding: 12px;
+            background: #1e3342;
+            border-radius: 48px;
+        }
+        .grid-cell {
+            background: radial-gradient(circle at 30% 35%, #fff7e8, #ffefd3);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: #1f5068;
+            cursor: pointer;
+            transition: 0.08s ease;
+            box-shadow: 0 6px 0 #8b6c42;
+            border: 2px solid #ffd6a5;
+            aspect-ratio: 1;
+            min-width: 55px;
+        }
+        .grid-cell:active { transform: translateY(3px); box-shadow: 0 2px 0 #8b6c42; }
+        .grid-cell.completed {
+            background: #b7d968;
+            color: #2a572c;
+            box-shadow: 0 4px 0 #5c8230;
+            cursor: default;
+        }
+        .timer-display {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: monospace;
+            background: #00000066;
+            padding: 5px 20px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .progress-bar-container {
+            background: #1e2a3e;
+            border-radius: 30px;
+            height: 20px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #48bb78, #ffb851);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 30px;
+        }
+        .message-panel {
+            background: #0c232f;
+            border-radius: 60px;
+            padding: 12px 24px;
+            text-align: center;
+            color: #ffdd99;
+            margin-top: 15px;
+        }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .level-complete {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2ecc71;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1001;
+            animation: fadeInOut 2s ease;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        @media (max-width: 650px) {
+            .grid-cell { font-size: 1.2rem; min-width: 45px; }
+            .stat span { font-size: 1.2rem; min-width: 55px; }
+            .level-btn { padding: 6px 12px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="header">
+        <div class="title">📊 SCHULTE TABLE</div>
+        <div class="level-badge" id="levelName">Level 1: 1-25 ↑</div>
+    </div>
+
+    <div class="level-selector" id="levelSelector">
+        <button class="level-btn" data-level="1">Level 1: 1-25 ↑</button>
+        <button class="level-btn" data-level="2">Level 2: 1-50 ↑</button>
+        <button class="level-btn" data-level="3">Level 3: 25-1 ↓</button>
+        <button class="level-btn" data-level="4">Level 4: 50-1 ↓</button>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat">Next: <span id="nextTarget">1</span></div>
+        <div class="stat">Time: <span id="timerDisplay">0.00 s</span></div>
+    </div>
+
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="gridContainer" class="schulte-grid"></div>
+    
+    <div id="messagePanel" class="message-panel">✨ Level 1: Tap numbers in order from 1 to 25 ✨</div>
+</div>
+
+<script>
+    class SchulteTraining {
+        constructor() {
+            this.LEVEL_CONFIG = {
+                1: { rows: 5, cols: 5, total: 25, order: 'asc', start: 1, end: 25, displayName: 'Level 1: 1-25 ↑' },
+                2: { rows: 5, cols: 10, total: 50, order: 'asc', start: 1, end: 50, displayName: 'Level 2: 1-50 ↑' },
+                3: { rows: 5, cols: 5, total: 25, order: 'desc', start: 25, end: 1, displayName: 'Level 3: 25-1 ↓' },
+                4: { rows: 5, cols: 10, total: 50, order: 'desc', start: 50, end: 1, displayName: 'Level 4: 50-1 ↓' }
+            };
+            
+            this.currentLevel = 1;
+            this.completedLevels = new Set();
+            this.gridData = [];
+            this.currentTarget = null;
+            this.gameActive = true;
+            this.timerRunning = false;
+            this.startTime = null;
+            this.timerInterval = null;
+            this.isGameFinished = false;
+            this.completed = false;
+            
+            this.init();
+        }
+        
+        init() {
+            this.setupEventListeners();
+            this.loadLevel(1);
+        }
+        
+        setupEventListeners() {
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const level = parseInt(btn.dataset.level);
+                    if (!this.completedLevels.has(level) && level !== this.currentLevel) {
+                        this.loadLevel(level);
+                    }
+                });
+            });
+        }
+        
+        loadLevel(level) {
+            this.currentLevel = level;
+            const config = this.LEVEL_CONFIG[level];
+            
+            // Update UI
+            document.getElementById('levelName').textContent = config.displayName;
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.level) === level) {
+                    btn.classList.add('active');
+                }
+                if (this.completedLevels.has(parseInt(btn.dataset.level))) {
+                    btn.classList.add('completed');
+                } else {
+                    btn.classList.remove('completed');
+                }
+            });
+            
+            // Reset state
+            this.stopTimer();
+            this.gameActive = true;
+            this.isGameFinished = false;
+            this.timerRunning = false;
+            this.startTime = null;
+            this.currentTarget = config.start;
+            
+            document.getElementById('nextTarget').textContent = this.currentTarget;
+            document.getElementById('timerDisplay').textContent = '0.00 s';
+            
+            // Set message
+            if (config.order === 'asc') {
+                document.getElementById('messagePanel').innerHTML = `✨ ${config.displayName}: Tap numbers from ${config.start} to ${config.end} in order ✨`;
+            } else {
+                document.getElementById('messagePanel').innerHTML = `✨ ${config.displayName}: Tap numbers from ${config.start} down to ${config.end} ✨`;
+            }
+            document.getElementById('messagePanel').style.background = '#0c232f';
+            
+            // Generate grid
+            this.generateGrid();
+            this.renderGrid();
+            this.updateProgress();
+        }
+        
+        generateGrid() {
+            const config = this.LEVEL_CONFIG[this.currentLevel];
+            let numbers = Array.from({ length: config.total }, (_, i) => i + 1);
+            
+            // Shuffle
+            for (let i = numbers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }
+            
+            this.gridData = [];
+            for (let i = 0; i < config.rows; i++) {
+                this.gridData.push(numbers.slice(i * config.cols, (i + 1) * config.cols));
+            }
+        }
+        
+        renderGrid() {
+            const container = document.getElementById('gridContainer');
+            const config = this.LEVEL_CONFIG[this.currentLevel];
+            
+            container.style.display = 'grid';
+            container.style.gridTemplateColumns = `repeat(${config.cols}, minmax(50px, 70px))`;
+            container.style.gap = '8px';
+            container.innerHTML = '';
+            
+            for (let i = 0; i < config.rows; i++) {
+                for (let j = 0; j < config.cols; j++) {
+                    const number = this.gridData[i][j];
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    
+                    // Check if this number should be completed
+                    const shouldBeCompleted = this.isNumberCompleted(number);
+                    if (shouldBeCompleted) {
+                        cell.classList.add('completed');
+                    }
+                    
+                    cell.textContent = number;
+                    cell.addEventListener('click', () => this.handleCellClick(number, cell));
+                    container.appendChild(cell);
+                }
+            }
+        }
+        
+        isNumberCompleted(number) {
+            const config = this.LEVEL_CONFIG[this.currentLevel];
+            if (config.order === 'asc') {
+                return number < this.currentTarget;
+            } else {
+                return number > this.currentTarget;
+            }
+        }
+        
+        startTimer() {
+            if (this.timerRunning) return;
+            this.startTime = performance.now();
+            this.timerRunning = true;
+            this.timerInterval = setInterval(() => this.updateTimer(), 50);
+        }
+        
+        updateTimer() {
+            if (!this.timerRunning || this.isGameFinished) return;
+            const elapsed = (performance.now() - this.startTime) / 1000;
+            document.getElementById('timerDisplay').textContent = elapsed.toFixed(2) + ' s';
+        }
+        
+        stopTimer() {
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+            this.timerRunning = false;
+        }
+        
+        handleCellClick(number, cell) {
+            if (this.isGameFinished) return;
+            
+            // Start timer on first click
+            if (!this.timerRunning && number === this.LEVEL_CONFIG[this.currentLevel].start) {
+                this.startTimer();
+            }
+            
+            if (number === this.currentTarget) {
+                // Correct click
+                cell.classList.add('completed');
+                
+                const config = this.LEVEL_CONFIG[this.currentLevel];
+                if (config.order === 'asc') {
+                    this.currentTarget++;
+                } else {
+                    this.currentTarget--;
+                }
+                
+                document.getElementById('nextTarget').textContent = this.currentTarget;
+                
+                // Check level completion
+                if (this.currentTarget === config.end + (config.order === 'asc' ? 1 : -1)) {
+                    this.completeLevel();
+                }
+            } else if (this.timerRunning) {
+                // Wrong click feedback
+                cell.style.transform = 'scale(0.95)';
+                cell.style.background = '#ffc2a1';
+                setTimeout(() => {
+                    cell.style.transform = '';
+                    cell.style.background = '';
+                }, 150);
+                
+                document.getElementById('messagePanel').innerHTML = `⚠️ Wrong! Need ${this.currentTarget}, clicked ${number}`;
+                document.getElementById('messagePanel').style.background = '#8b3a3a';
+                setTimeout(() => {
+                    if (!this.isGameFinished) {
+                        const config = this.LEVEL_CONFIG[this.currentLevel];
+                        if (config.order === 'asc') {
+                            document.getElementById('messagePanel').innerHTML = `✨ Tap numbers from ${config.start} to ${config.end} in order ✨`;
+                        } else {
+                            document.getElementById('messagePanel').innerHTML = `✨ Tap numbers from ${config.start} down to ${config.end} ✨`;
+                        }
+                        document.getElementById('messagePanel').style.background = '#0c232f';
+                    }
+                }, 1500);
+            }
+        }
+        
+        completeLevel() {
+            this.stopTimer();
+            this.isGameFinished = true;
+            
+            const elapsed = (performance.now() - this.startTime) / 1000;
+            this.completedLevels.add(this.currentLevel);
+            
+            // Update button to show completed
+            const btn = document.querySelector(`.level-btn[data-level="${this.currentLevel}"]`);
+            btn.classList.add('completed');
+            
+            // Show completion message
+            const config = this.LEVEL_CONFIG[this.currentLevel];
+            const levelCompleteDiv = document.createElement('div');
+            levelCompleteDiv.className = 'level-complete';
+            levelCompleteDiv.innerHTML = `✅ ${config.displayName} Completed! Time: ${elapsed.toFixed(2)}s ✅`;
+            document.body.appendChild(levelCompleteDiv);
+            
+            document.getElementById('messagePanel').innerHTML = `🎉 ${config.displayName} Complete! Time: ${elapsed.toFixed(2)}s 🎉`;
+            document.getElementById('messagePanel').style.background = '#2a6b3a';
+            
+            this.updateProgress();
+            
+            // Check if all levels are completed
+            if (this.completedLevels.size === 4) {
+                setTimeout(() => {
+                    this.allLevelsComplete();
+                }, 1500);
+            } else {
+                // Find next incomplete level
+                setTimeout(() => {
+                    for (let i = 1; i <= 4; i++) {
+                        if (!this.completedLevels.has(i)) {
+                            this.loadLevel(i);
+                            break;
+                        }
+                    }
+                }, 2000);
+            }
+        }
+        
+        updateProgress() {
+            const percent = (this.completedLevels.size / 4) * 100;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+        
+        allLevelsComplete() {
+            document.getElementById('messagePanel').innerHTML = '🏆 AMAZING! You completed all 4 Schulte Table levels! 🏆';
+            document.getElementById('messagePanel').style.background = '#1e4620';
+            
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ All Schulte Levels Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            
+            setTimeout(() => banner.remove(), 5000);
+        }
+    }
+    
+    new SchulteTraining();
+</script>
+</body>
+</html>

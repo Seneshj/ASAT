@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cattell Matrix Task - Training</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(145deg, #2c3e50 0%, #1a2634 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            max-width: 1100px;
+            width: 100%;
+        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 8px; font-size: 1.6rem; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 15px; font-size: 0.85rem; }
+        .instruction-panel {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 12px;
+            color: #2c5282;
+        }
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            background: #f0f2f5;
+            padding: 12px;
+            border-radius: 15px;
+            margin-bottom: 18px;
+        }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 11px; color: #7f8c8d; }
+        .stat-value { font-size: 22px; font-weight: 700; color: #2c3e50; }
+        .stat-value.warning { color: #e74c3c; }
+        .stat-value.success { color: #2ecc71; }
+        .timer-container {
+            background: linear-gradient(145deg, #2c3e50, #1e2a3a);
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .timer-display {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 18px;
+            border-radius: 10px;
+        }
+        .difficulty-badge {
+            padding: 6px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #48bb78;
+            color: white;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 5px;
+        }
+        .pattern-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            position: relative;
+        }
+        .pattern-card:hover { transform: translateY(-3px); border-color: #3498db; }
+        .pattern-card.selected { border-color: #e74c3c; background: #fff5f5; }
+        .pattern-card.correct-feedback { border-color: #2ecc71; background: #f0fff4; }
+        .pattern-number {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #adb5bd;
+            background: #f8f9fa;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pattern-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .shape-circle { width: 38px; height: 38px; border-radius: 50%; }
+        .shape-square { width: 35px; height: 35px; }
+        .shape-triangle {
+            width: 0;
+            height: 0;
+            background: transparent !important;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-bottom: 31px solid;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        button {
+            padding: 12px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .message-area {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .message-success { background: #f0fff4; color: #22543d; }
+        .message-error { background: #fff5f5; color: #742a2a; }
+        .message-info { background: #ebf8ff; color: #1e3a8a; }
+        .completion-banner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 12px;
+            animation: slideIn 0.5s ease;
+            z-index: 1000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 800px) {
+            .game-container { padding: 15px; }
+            .stats-panel { grid-template-columns: repeat(3, 1fr); }
+            .pattern-card { min-height: 150px; padding: 10px 6px; }
+            .shape-circle, .shape-square { width: 30px; height: 30px; }
+            .shape-triangle { border-left: 14px solid transparent; border-right: 14px solid transparent; border-bottom: 24px solid; }
+            .pattern-content { gap: 5px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>🧩 Cattell Culture Fair Matrix Task</h1>
+    <div class="subtitle">Identify the pattern that breaks the rules</div>
+
+    <div class="instruction-panel">
+        <strong>📖 How to play:</strong> 8 patterns follow a hidden rule, 1 breaks it. Click the odd one out, then "Submit Answer".
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat-item"><div class="stat-label">Score</div><div class="stat-value" id="score">0</div></div>
+        <div class="stat-item"><div class="stat-label">Correct</div><div class="stat-value success" id="correctCount">0</div></div>
+        <div class="stat-item"><div class="stat-label">Incorrect</div><div class="stat-value warning" id="incorrectCount">0</div></div>
+        <div class="stat-item"><div class="stat-label">Level</div><div class="stat-value" id="difficultyLevel">1</div></div>
+        <div class="stat-item"><div class="stat-label">Problems</div><div class="stat-value" id="problemCount">0</div></div>
+    </div>
+
+    <div class="timer-container">
+        <div class="timer-block">
+            <span class="timer-label">Time Remaining</span>
+            <span class="timer-display" id="timer">03:00</span>
+        </div>
+        <div class="timer-block">
+            <span class="timer-label">Difficulty</span>
+            <span id="difficultyBadge" class="difficulty-badge">Level 1</span>
+        </div>
+    </div>
+
+    <div class="grid-container" id="patternGrid"></div>
+
+    <div class="controls">
+        <button class="btn-primary" id="submitBtn" disabled>Submit Answer</button>
+        <button class="btn-danger" id="resetBtn">Reset Game</button>
+    </div>
+    <div class="message-area" id="message"></div>
+</div>
+
+<script>
+    class CattellTraining {
+        constructor() {
+            this.score = 0;
+            this.correctCount = 0;
+            this.incorrectCount = 0;
+            this.difficultyLevel = 1;
+            this.problemCount = 0;
+            this.timeLeft = 180;
+            this.timerInterval = null;
+            this.gameActive = false;
+            this.selectedPattern = null;
+            this.currentPatterns = [];
+            this.currentRules = null;
+            this.waitingForNext = false;
+            this.completed = false;
+            
+            this.colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
+            this.shapes = ['circle', 'square', 'triangle'];
+            
+            this.init();
+        }
+        
+        init() {
+            this.setupEventListeners();
+            this.resetGame();
+        }
+        
+        setupEventListeners() {
+            document.getElementById('submitBtn').addEventListener('click', () => this.checkAnswer());
+            document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+        }
+        
+        resetGame() {
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.gameActive = true;
+            this.waitingForNext = false;
+            this.completed = false;
+            this.timeLeft = 180;
+            this.score = 0;
+            this.correctCount = 0;
+            this.incorrectCount = 0;
+            this.problemCount = 0;
+            this.difficultyLevel = 1;
+            this.selectedPattern = null;
+            this.updateStats();
+            this.updateDifficultyDisplay();
+            this.updateTimerDisplay();
+            this.startTimer();
+            this.generateProblem();
+            document.getElementById('submitBtn').disabled = true;
+            this.showMessage('Game started! Find the odd one out.', 'info');
+        }
+        
+        startTimer() {
+            this.timerInterval = setInterval(() => {
+                if (!this.gameActive) return;
+                this.timeLeft--;
+                this.updateTimerDisplay();
+                if (this.timeLeft <= 0) {
+                    this.timeUp();
+                }
+            }, 1000);
+        }
+        
+        updateTimerDisplay() {
+            const minutes = Math.floor(this.timeLeft / 60);
+            const seconds = this.timeLeft % 60;
+            document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (this.timeLeft <= 30) {
+                document.getElementById('timer').style.color = '#e74c3c';
+            } else {
+                document.getElementById('timer').style.color = 'white';
+            }
+        }
+        
+        timeUp() {
+            this.gameActive = false;
+            clearInterval(this.timerInterval);
+            document.getElementById('submitBtn').disabled = true;
+            this.showMessage(`Time's up! Final score: ${this.score}`, 'info');
+            this.completeTraining();
+        }
+        
+        generateProblem() {
+            if (!this.gameActive) return;
+            this.selectedPattern = null;
+            this.waitingForNext = false;
+            document.getElementById('submitBtn').disabled = true;
+            
+            const shapesPerPattern = this.getShapesPerPattern();
+            this.currentRules = this.generateRulesForDifficulty();
+            const patterns = [];
+            
+            for (let i = 0; i < 8; i++) {
+                patterns.push(this.generateConformingPattern(shapesPerPattern));
+            }
+            
+            const oddPattern = this.generateNonConformingPattern(shapesPerPattern);
+            const oddIndex = Math.floor(Math.random() * 9);
+            patterns.splice(oddIndex, 0, oddPattern);
+            
+            this.currentPatterns = patterns.map((pattern, index) => ({
+                ...pattern,
+                id: index,
+                isOddOneOut: index === oddIndex
+            }));
+            
+            this.renderPatterns();
+            this.updateRuleHint();
+        }
+        
+        getShapesPerPattern() {
+            return Math.min(2 + Math.floor(this.difficultyLevel / 2), 5);
+        }
+        
+        generateRulesForDifficulty() {
+            const shapesPerPattern = this.getShapesPerPattern();
+            
+            switch(this.difficultyLevel) {
+                case 1:
+                    return {
+                        type: 'constant-color',
+                        value: this.colors[Math.floor(Math.random() * 4)],
+                        shapesPerPattern: shapesPerPattern
+                    };
+                case 2:
+                    return {
+                        type: 'constant-shape',
+                        value: this.shapes[Math.floor(Math.random() * this.shapes.length)],
+                        shapesPerPattern: shapesPerPattern
+                    };
+                default:
+                    return {
+                        type: 'color-shape-mapping',
+                        mappings: {
+                            'circle': this.colors[0],
+                            'square': this.colors[1],
+                            'triangle': this.colors[2]
+                        },
+                        shapesPerPattern: shapesPerPattern
+                    };
+            }
+        }
+        
+        generateConformingPattern(shapesPerPattern) {
+            const pattern = { shapes: [] };
+            const rule = this.currentRules;
+            
+            if (rule.type === 'constant-color') {
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const shapeType = this.shapes[Math.floor(Math.random() * this.shapes.length)];
+                    pattern.shapes.push({ type: shapeType, color: rule.value });
+                }
+            } else if (rule.type === 'constant-shape') {
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                    pattern.shapes.push({ type: rule.value, color: color });
+                }
+            } else {
+                const shapeTypes = Object.keys(rule.mappings);
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const randomShape = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                    pattern.shapes.push({
+                        type: randomShape,
+                        color: rule.mappings[randomShape]
+                    });
+                }
+            }
+            return pattern;
+        }
+        
+        generateNonConformingPattern(shapesPerPattern) {
+            const pattern = { shapes: [] };
+            const rule = this.currentRules;
+            
+            if (rule.type === 'constant-color') {
+                const wrongColor = this.colors.find(c => c !== rule.value) || this.colors[4];
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const shapeType = this.shapes[Math.floor(Math.random() * this.shapes.length)];
+                    pattern.shapes.push({ type: shapeType, color: i === 0 ? wrongColor : rule.value });
+                }
+            } else if (rule.type === 'constant-shape') {
+                const wrongShape = this.shapes.find(s => s !== rule.value) || this.shapes[1];
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                    pattern.shapes.push({ type: i === 0 ? wrongShape : rule.value, color: color });
+                }
+            } else {
+                const shapeTypes = Object.keys(rule.mappings);
+                const wrongColor = this.colors[3];
+                for (let i = 0; i < shapesPerPattern; i++) {
+                    const randomShape = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                    pattern.shapes.push({
+                        type: randomShape,
+                        color: i === 0 ? wrongColor : rule.mappings[randomShape]
+                    });
+                }
+            }
+            return pattern;
+        }
+        
+        renderPatterns() {
+            const grid = document.getElementById('patternGrid');
+            grid.innerHTML = '';
+            
+            this.currentPatterns.forEach((pattern, index) => {
+                const card = document.createElement('div');
+                card.className = `pattern-card ${this.selectedPattern === index ? 'selected' : ''}`;
+                card.dataset.index = index;
+                
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'pattern-number';
+                numberDiv.textContent = String.fromCharCode(65 + index);
+                card.appendChild(numberDiv);
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'pattern-content';
+                
+                pattern.shapes.forEach((shape) => {
+                    const shapeDiv = document.createElement('div');
+                    shapeDiv.className = `shape-${shape.type}`;
+                    if (shape.type === 'triangle') {
+                        shapeDiv.style.borderBottomColor = shape.color;
+                    } else {
+                        shapeDiv.style.backgroundColor = shape.color;
+                    }
+                    contentDiv.appendChild(shapeDiv);
+                });
+                
+                card.appendChild(contentDiv);
+                card.addEventListener('click', () => {
+                    if (this.gameActive && !this.waitingForNext) {
+                        this.selectPattern(index);
+                    }
+                });
+                grid.appendChild(card);
+            });
+        }
+        
+        selectPattern(index) {
+            this.selectedPattern = index;
+            document.getElementById('submitBtn').disabled = false;
+            document.querySelectorAll('.pattern-card').forEach((card, i) => {
+                if (i == index) card.classList.add('selected');
+                else card.classList.remove('selected');
+            });
+        }
+        
+        checkAnswer() {
+            if (!this.gameActive || this.waitingForNext || this.selectedPattern === null) return;
+            
+            const isCorrect = this.currentPatterns[this.selectedPattern].isOddOneOut;
+            this.waitingForNext = true;
+            document.getElementById('submitBtn').disabled = true;
+            
+            if (isCorrect) {
+                this.correctCount++;
+                this.score = this.correctCount - this.incorrectCount;
+                if (this.difficultyLevel < 5) this.difficultyLevel++;
+                this.showMessage('✅ Correct!', 'success');
+                const selectedCard = document.querySelector('.pattern-card.selected');
+                if (selectedCard) selectedCard.classList.add('correct-feedback');
+            } else {
+                this.incorrectCount++;
+                this.score = this.correctCount - this.incorrectCount;
+                if (this.difficultyLevel > 1) this.difficultyLevel--;
+                const correctIndex = this.currentPatterns.findIndex(p => p.isOddOneOut);
+                const correctLetter = String.fromCharCode(65 + correctIndex);
+                this.showMessage(`✗ Incorrect. Pattern ${correctLetter} was the odd one out.`, 'error');
+                const correctCard = document.querySelector(`.pattern-card[data-index="${correctIndex}"]`);
+                if (correctCard) correctCard.classList.add('correct-feedback');
+            }
+            
+            this.problemCount++;
+            this.updateStats();
+            this.updateDifficultyDisplay();
+            
+            setTimeout(() => {
+                if (this.gameActive) this.generateProblem();
+            }, 1800);
+        }
+        
+        updateStats() {
+            document.getElementById('score').textContent = this.score;
+            document.getElementById('correctCount').textContent = this.correctCount;
+            document.getElementById('incorrectCount').textContent = this.incorrectCount;
+            document.getElementById('difficultyLevel').textContent = this.difficultyLevel;
+            document.getElementById('problemCount').textContent = this.problemCount;
+        }
+        
+        updateDifficultyDisplay() {
+            const badge = document.getElementById('difficultyBadge');
+            if (this.difficultyLevel <= 2) {
+                badge.style.background = '#48bb78';
+                badge.textContent = `Level ${this.difficultyLevel}: Simple Rule`;
+            } else if (this.difficultyLevel <= 4) {
+                badge.style.background = '#f39c12';
+                badge.textContent = `Level ${this.difficultyLevel}: Color-Shape Mapping`;
+            } else {
+                badge.style.background = '#e74c3c';
+                badge.textContent = `Level ${this.difficultyLevel}: Complex Pattern`;
+            }
+        }
+        
+        updateRuleHint() {
+            let hintText = '';
+            switch(this.difficultyLevel) {
+                case 1:
+                    hintText = '🎯 Rule: All shapes in a pattern are the same COLOR. Find the pattern with a different color.';
+                    break;
+                case 2:
+                    hintText = '🎯 Rule: All shapes in a pattern are the same SHAPE. Find the pattern with a different shape.';
+                    break;
+                default:
+                    hintText = '🎯 Rule: Each shape type has a specific color. Find the pattern that breaks this rule.';
+            }
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = hintText;
+            msgDiv.className = 'message-area message-info';
+            setTimeout(() => {
+                if (this.gameActive && msgDiv.textContent === hintText) {
+                    msgDiv.textContent = '';
+                    msgDiv.className = 'message-area';
+                }
+            }, 3000);
+        }
+        
+        showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = `message-area message-${type}`;
+            setTimeout(() => {
+                if (document.getElementById('message').textContent === text) {
+                    msgDiv.textContent = '';
+                    msgDiv.className = 'message-area';
+                }
+            }, 2000);
+        }
+        
+        completeTraining() {
+            if (this.completed) return;
+            this.completed = true;
+            
+            const banner = document.createElement('div');
+            banner.className = 'completion-banner';
+            banner.innerHTML = '✅ Cattell Matrix Completed! You can close this window.';
+            document.body.appendChild(banner);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('taskId');
+            if (window.opener) {
+                window.opener.postMessage({ type: 'TASK_COMPLETE', taskId: taskId }, '*');
+            }
+            
+            setTimeout(() => banner.remove(), 5000);
+        }
+    }
+    
+    new CattellTraining();
+</script>
+</body>
+</html>
