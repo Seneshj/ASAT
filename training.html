@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ASAT - Training Session</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0a0f1e 0%, #0c1222 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #eef2ff;
+        }
+
+        .training-container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(18, 25, 45, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.3);
+            overflow: hidden;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5d8ff, #ffb347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .cluster-badge {
+            display: inline-block;
+            background: #4f7df3;
+            padding: 5px 15px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        .task-progress {
+            background: #0b1020;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-bar-container {
+            background: #1e2a3e;
+            border-radius: 30px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #4f7df3, #ffb347);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 30px;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .task-item {
+            background: #1a2340;
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .task-item.completed {
+            background: #1e4620;
+            opacity: 0.7;
+        }
+
+        .task-item.locked {
+            opacity: 0.5;
+            filter: grayscale(0.3);
+        }
+
+        .task-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-status {
+            font-size: 0.8rem;
+            color: #ffb347;
+        }
+
+        .task-btn {
+            background: #4f7df3;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s ease;
+        }
+
+        .task-btn:active {
+            transform: scale(0.97);
+        }
+
+        .task-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .back-btn {
+            background: #7a3e2e;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .completion-message {
+            text-align: center;
+            padding: 20px;
+            background: #1e4620;
+            border-radius: 1rem;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .training-container { padding: 1rem; }
+            .task-item { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="training-container">
+    <div class="header">
+        <div class="logo">🎯 ASAT Training Session</div>
+        <div class="cluster-badge" id="clusterBadge">Loading your profile...</div>
+    </div>
+
+    <div class="task-progress">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Training Progress</span>
+            <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="taskCounter">0/0 tasks completed</div>
+    </div>
+
+    <div class="task-list" id="taskList"></div>
+
+    <button class="back-btn" id="backBtn">← Back to Assessment</button>
+</div>
+
+<script>
+    // Training sequences based on cluster
+    const TRAINING_SEQUENCES = {
+        0: [
+            { id: "feature-search", name: "🔍 Feature Search Task", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "schulte-table", name: "📊 Schulte Table", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "cattell-matrix", name: "🧩 Cattell Matrix Task", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "nonogram", name: "🎨 Nonogram (Heart & Rocket)", duration: "Complete puzzle", type: "complete" },
+            { id: "cpt-training", name: "🎯 CPT Training", duration: "50 trials", type: "trials", trialCount: 50 },
+            { id: "sudoku", name: "📐 Sudoku", duration: "Complete puzzle", type: "complete" }
+        ],
+        1: [
+            { id: "schulte-table", name: "📊 Schulte Table", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "number-ladder", name: "🔢 Number Ladder", duration: "90 seconds", type: "time", timeLimit: 90 },
+            { id: "digit-span", name: "🔢 Digit Span", duration: "Until 5 errors", type: "errors", errorLimit: 5 },
+            { id: "feature-search", name: "🔍 Feature Search Task", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "cpt-training", name: "🎯 CPT Training", duration: "50 trials", type: "trials", trialCount: 50 },
+            { id: "sudoku", name: "📐 Sudoku", duration: "Complete puzzle", type: "complete" }
+        ],
+        2: [
+            { id: "schulte-table", name: "📊 Schulte Table", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "feature-search", name: "🔍 Feature Search Task", duration: "3 minutes", type: "time", timeLimit: 180 },
+            { id: "memory-match", name: "🎴 Memory Match", duration: "3 rounds", type: "rounds", roundCount: 3 },
+            { id: "digit-span", name: "🔢 Digit Span", duration: "Until 5 errors", type: "errors", errorLimit: 5 },
+            { id: "number-ladder", name: "🔢 Number Ladder", duration: "90 seconds", type: "time", timeLimit: 90 },
+            { id: "cpt-training", name: "🎯 CPT Training", duration: "50 trials", type: "trials", trialCount: 50 },
+            { id: "sudoku", name: "📐 Sudoku", duration: "Complete puzzle", type: "complete" }
+        ]
+    };
+
+    let currentCluster = null;
+    let tasks = [];
+    let completedTasks = new Set();
+
+    // Load completed tasks from localStorage
+    function loadCompletedTasks() {
+        const saved = localStorage.getItem(`asat_training_completed_${currentCluster}`);
+        if (saved) {
+            completedTasks = new Set(JSON.parse(saved));
+        }
+        updateProgress();
+    }
+
+    // Save completed tasks
+    function saveCompletedTasks() {
+        localStorage.setItem(`asat_training_completed_${currentCluster}`, JSON.stringify([...completedTasks]));
+    }
+
+    // Mark task as completed
+    function completeTask(taskId) {
+        completedTasks.add(taskId);
+        saveCompletedTasks();
+        updateProgress();
+        renderTaskList();
+    }
+
+    // Update progress display
+    function updateProgress() {
+        const total = tasks.length;
+        const completed = completedTasks.size;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        document.getElementById("progressPercent").textContent = `${percent}%`;
+        document.getElementById("progressBar").style.width = `${percent}%`;
+        document.getElementById("taskCounter").textContent = `${completed}/${total} tasks completed`;
+        
+        // Check if all tasks are completed
+        if (completed === total && total > 0) {
+            showCompletionMessage();
+        }
+    }
+
+    // Show completion message
+    function showCompletionMessage() {
+        const taskList = document.getElementById("taskList");
+        const completionDiv = document.createElement("div");
+        completionDiv.className = "completion-message";
+        completionDiv.innerHTML = `
+            🎉 <strong>Congratulations!</strong> 🎉<br>
+            You've completed all training tasks!<br>
+            <small>Your attention has been strengthened through these exercises.</small>
+        `;
+        
+        // Check if already exists
+        if (!document.querySelector(".completion-message")) {
+            taskList.parentNode.insertBefore(completionDiv, taskList.nextSibling);
+        }
+    }
+
+    // Open task in new window/tab
+    function openTask(task) {
+        const taskUrl = `tasks/${task.id}.html?cluster=${currentCluster}&taskId=${task.id}`;
+        window.open(taskUrl, '_blank');
+        
+        // For tasks that complete automatically, we'll rely on the task page to call back
+        // For now, we'll add a way to manually mark complete (for tasks that don't auto-report)
+        if (task.type === 'complete' || task.type === 'rounds') {
+            // These tasks typically have completion detection
+            // The task page will handle marking completion via localStorage or postMessage
+        }
+    }
+
+    // Listen for completion messages from task windows
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'TASK_COMPLETE') {
+            const taskId = event.data.taskId;
+            if (tasks.some(t => t.id === taskId)) {
+                completeTask(taskId);
+            }
+        }
+    });
+
+    // Render task list
+    function renderTaskList() {
+        const taskListDiv = document.getElementById("taskList");
+        taskListDiv.innerHTML = "";
+        
+        let previousCompleted = true;
+        
+        tasks.forEach((task, index) => {
+            const isCompleted = completedTasks.has(task.id);
+            const isLocked = !previousCompleted && !isCompleted;
+            const isCurrent = previousCompleted && !isCompleted;
+            
+            const taskDiv = document.createElement("div");
+            taskDiv.className = `task-item ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`;
+            
+            taskDiv.innerHTML = `
+                <div class="task-name">
+                    ${isCompleted ? '✅' : (isCurrent ? '▶️' : '🔒')} ${task.name}
+                    <span class="task-status">${task.duration}</span>
+                </div>
+                <button class="task-btn" ${isLocked || isCompleted ? 'disabled' : ''} data-task-id="${task.id}">
+                    ${isCompleted ? 'Completed' : 'Start Task'}
+                </button>
+            `;
+            
+            taskListDiv.appendChild(taskDiv);
+            
+            const btn = taskDiv.querySelector('.task-btn');
+            if (btn && !isLocked && !isCompleted) {
+                btn.addEventListener('click', () => openTask(task));
+            }
+            
+            if (!isCompleted) {
+                previousCompleted = false;
+            }
+        });
+    }
+
+    // Initialize training session
+    function init() {
+        // Get cluster from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clusterParam = urlParams.get('cluster');
+        
+        currentCluster = clusterParam !== null ? parseInt(clusterParam) : null;
+        
+        // Also try to get from localStorage
+        if (isNaN(currentCluster)) {
+            const savedCluster = localStorage.getItem('asat_cluster_id');
+            currentCluster = savedCluster !== null ? parseInt(savedCluster) : null;
+        }
+        
+        if (currentCluster === null || !TRAINING_SEQUENCES[currentCluster]) {
+            document.getElementById("clusterBadge").textContent = "⚠️ Profile not found. Please complete assessment first.";
+            document.getElementById("clusterBadge").style.background = "#8b3a3a";
+            return;
+        }
+        
+        tasks = TRAINING_SEQUENCES[currentCluster];
+        
+        const clusterNames = {
+            0: "Cluster 0: Slow Processor - Focus & Processing Speed Training",
+            1: "Cluster 1: High Performer - Maintenance Training",
+            2: "Cluster 2: Balanced Attender - Strengthening Training"
+        };
+        
+        document.getElementById("clusterBadge").textContent = clusterNames[currentCluster] || `Cluster ${currentCluster} Training`;
+        
+        loadCompletedTasks();
+        renderTaskList();
+    }
+    
+    // Back button
+    document.getElementById("backBtn").addEventListener("click", () => {
+        window.location.href = "index.html";
+    });
+    
+    init();
+</script>
+</body>
+</html>
