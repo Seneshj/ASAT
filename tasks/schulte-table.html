@@ -167,6 +167,23 @@
             color: #ffdd99;
             margin-top: 15px;
         }
+        .level-complete-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2ecc71;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1001;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: fadeInOut 2s ease;
+            pointer-events: none;
+        }
         .completion-banner {
             position: fixed;
             bottom: 30px;
@@ -179,29 +196,15 @@
             animation: slideIn 0.5s ease;
             z-index: 1000;
         }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .level-complete {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #2ecc71;
-            color: white;
-            padding: 20px 40px;
-            border-radius: 60px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            z-index: 1001;
-            animation: fadeInOut 2s ease;
-        }
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
             20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
             80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); visibility: hidden; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         @media (max-width: 650px) {
             .grid-cell { font-size: 1.2rem; min-width: 45px; }
@@ -257,7 +260,9 @@
             this.startTime = null;
             this.timerInterval = null;
             this.isGameFinished = false;
+            this.levelCompleted = false;
             this.completed = false;
+            this.waitingForNextLevel = false;
             
             this.init();
         }
@@ -271,14 +276,19 @@
             document.querySelectorAll('.level-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const level = parseInt(btn.dataset.level);
-                    if (!this.completedLevels.has(level) && level !== this.currentLevel) {
-                        this.loadLevel(level);
+                    // Allow switching only to already completed levels or current level
+                    if (this.completedLevels.has(level) || level === this.currentLevel) {
+                        if (!this.waitingForNextLevel && !this.levelCompleted) {
+                            this.loadLevel(level);
+                        }
                     }
                 });
             });
         }
         
         loadLevel(level) {
+            if (this.waitingForNextLevel) return;
+            
             this.currentLevel = level;
             const config = this.LEVEL_CONFIG[level];
             
@@ -300,6 +310,7 @@
             this.stopTimer();
             this.gameActive = true;
             this.isGameFinished = false;
+            this.levelCompleted = false;
             this.timerRunning = false;
             this.startTime = null;
             this.currentTarget = config.start;
@@ -396,9 +407,9 @@
         }
         
         handleCellClick(number, cell) {
-            if (this.isGameFinished) return;
+            if (this.isGameFinished || this.waitingForNextLevel || this.levelCompleted) return;
             
-            // Start timer on first click
+            // Start timer on first click of the level
             if (!this.timerRunning && number === this.LEVEL_CONFIG[this.currentLevel].start) {
                 this.startTimer();
             }
@@ -432,7 +443,7 @@
                 document.getElementById('messagePanel').innerHTML = `⚠️ Wrong! Need ${this.currentTarget}, clicked ${number}`;
                 document.getElementById('messagePanel').style.background = '#8b3a3a';
                 setTimeout(() => {
-                    if (!this.isGameFinished) {
+                    if (!this.isGameFinished && !this.levelCompleted) {
                         const config = this.LEVEL_CONFIG[this.currentLevel];
                         if (config.order === 'asc') {
                             document.getElementById('messagePanel').innerHTML = `✨ Tap numbers from ${config.start} to ${config.end} in order ✨`;
@@ -446,8 +457,9 @@
         }
         
         completeLevel() {
-            this.stopTimer();
+            this.levelCompleted = true;
             this.isGameFinished = true;
+            this.stopTimer();
             
             const elapsed = (performance.now() - this.startTime) / 1000;
             this.completedLevels.add(this.currentLevel);
@@ -456,12 +468,9 @@
             const btn = document.querySelector(`.level-btn[data-level="${this.currentLevel}"]`);
             btn.classList.add('completed');
             
-            // Show completion message
+            // Show completion message (floating, non-blocking)
             const config = this.LEVEL_CONFIG[this.currentLevel];
-            const levelCompleteDiv = document.createElement('div');
-            levelCompleteDiv.className = 'level-complete';
-            levelCompleteDiv.innerHTML = `✅ ${config.displayName} Completed! Time: ${elapsed.toFixed(2)}s ✅`;
-            document.body.appendChild(levelCompleteDiv);
+            this.showLevelCompleteMessage(`${config.displayName} Completed! Time: ${elapsed.toFixed(2)}s`);
             
             document.getElementById('messagePanel').innerHTML = `🎉 ${config.displayName} Complete! Time: ${elapsed.toFixed(2)}s 🎉`;
             document.getElementById('messagePanel').style.background = '#2a6b3a';
@@ -474,16 +483,30 @@
                     this.allLevelsComplete();
                 }, 1500);
             } else {
-                // Find next incomplete level
+                // Find next incomplete level and auto-load after delay
+                this.waitingForNextLevel = true;
                 setTimeout(() => {
+                    this.waitingForNextLevel = false;
                     for (let i = 1; i <= 4; i++) {
                         if (!this.completedLevels.has(i)) {
                             this.loadLevel(i);
                             break;
                         }
                     }
-                }, 2000);
+                }, 2500);
             }
+        }
+        
+        showLevelCompleteMessage(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'level-complete-overlay';
+            overlay.innerHTML = `✅ ${message} ✅`;
+            document.body.appendChild(overlay);
+            
+            // Remove after animation
+            setTimeout(() => {
+                if (overlay) overlay.remove();
+            }, 2000);
         }
         
         updateProgress() {
@@ -500,6 +523,7 @@
             banner.innerHTML = '✅ All Schulte Levels Completed! You can close this window.';
             document.body.appendChild(banner);
             
+            // Send completion to parent
             const urlParams = new URLSearchParams(window.location.search);
             const taskId = urlParams.get('taskId');
             if (window.opener) {
