@@ -62,27 +62,27 @@ def load_models():
     
     # Check if files exist
     if not os.path.exists(model_path):
-        print(f"❌ ERROR: Model file not found at {model_path}")
+        print(f" ERROR: Model file not found at {model_path}")
         return False
     
     if not os.path.exists(scaler_path):
-        print(f"❌ ERROR: Scaler file not found at {scaler_path}")
+        print(f" ERROR: Scaler file not found at {scaler_path}")
         return False
     
     try:
         # Load GMM model
         gmm_model = joblib.load(model_path)
-        print(f"✅ GMM Model loaded: {type(gmm_model).__name__}")
+        print(f" GMM Model loaded: {type(gmm_model).__name__}")
         print(f"   Number of clusters: {gmm_model.n_components}")
         
         # Load scaler
         scaler = joblib.load(scaler_path)
-        print(f"✅ Scaler loaded: {type(scaler).__name__}")
+        print(f" Scaler loaded: {type(scaler).__name__}")
         
         # Load metadata if available
         if os.path.exists(metadata_path):
             model_metadata = joblib.load(metadata_path)
-            print(f"✅ Metadata loaded: {model_metadata.get('optimal_clusters', 'N/A')} clusters")
+            print(f" Metadata loaded: {model_metadata.get('optimal_clusters', 'N/A')} clusters")
             
             # Update ATTENTION_GROUPS based on metadata if available
             if 'cluster_profiles' in model_metadata:
@@ -188,7 +188,7 @@ def predict_attention_group(features_dict):
         return result
         
     except Exception as e:
-        print(f"❌ Prediction error: {e}")
+        print(f" Prediction error: {e}")
         traceback.print_exc()
         return {
             'success': False,
@@ -210,7 +210,7 @@ def predict():
                 'error': 'No JSON data provided'
             }), 400
         
-        print(f"\n📊 Received metrics:")
+        print(f"\n Received metrics:")
         for key in FEATURE_NAMES:
             if key in data:
                 print(f"   {key}: {data[key]}")
@@ -218,14 +218,14 @@ def predict():
         result = predict_attention_group(data)
         
         if result['success']:
-            print(f"✅ Predicted: {result['attention_group']} (confidence: {result['confidence']:.2%})")
+            print(f" Predicted: {result['attention_group']} (confidence: {result['confidence']:.2%})")
         else:
-            print(f"❌ Prediction failed: {result.get('error', 'Unknown error')}")
+            print(f" Prediction failed: {result.get('error', 'Unknown error')}")
         
         return jsonify(result)
         
     except Exception as e:
-        print(f"❌ Request error: {e}")
+        print(f" Request error: {e}")
         traceback.print_exc()
         return jsonify({
             'success': False,
@@ -281,29 +281,29 @@ def get_metadata():
 
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("🧠 Attention Profile Prediction Server")
-    print("=" * 60)
+    print(" ")
+    print(" Attention Profile Prediction Server")
+    print(" ")
     
-    print("\n📁 Loading trained models...")
+    print("\n Loading trained models...")
     models_loaded = load_models()
     
     if models_loaded:
-        print("\n✅ Server ready to receive predictions!")
+        print("\n Server ready to receive predictions!")
         print(f"   GMM has {gmm_model.n_components} attention clusters")
         print(f"   Features expected: {len(FEATURE_NAMES)} metrics")
     else:
-        print("\n❌ Could not load models. Please ensure:")
+        print("\n Could not load models. Please ensure:")
         print("   1. 'gmm_model.pkl' exists in the current directory")
         print("   2. 'scaler.pkl' exists in the current directory")
         print("   3. Both files were saved correctly during training")
     
-    print("\n" + "=" * 60)
-    print("🚀 Starting Flask server...")
-    print(f"📡 Prediction endpoint: http://localhost:5000/predict")
-    print(f"🔍 Health check: http://localhost:5000/health")
-    print(f"📊 Groups info: http://localhost:5000/groups")
-    print("=" * 60)
-    print("\n✅ Ready! Open your HTML file and click 'GET ATTENTION PROFILE'\n")
+    print(" ")
+    print(" Starting Flask server...")
+    print(f" Prediction endpoint: http://localhost:5000/predict")
+    print(f" Health check: http://localhost:5000/health")
+    print(f" Groups info: http://localhost:5000/groups")
+    print(" ")
+    print("\n Ready! Open your HTML file and click 'GET ATTENTION PROFILE'\n")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
